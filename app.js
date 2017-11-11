@@ -377,29 +377,31 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
 
   switch (requestPayload.action) {
     case 'QR_GET_GREETING':
-      var products = shopify.products({ "title": requestPayload.name});
-      
-      var sh_product = shopify.product.get(requestPayload.id);
-      sh_product.then(function(product) {
-        var options = '';
-        product.options.map(function(option) {
-          options = options + option.name + ': ' + option.values.join(',') + "\n";
-        });
         var messageData = {
           recipient: {
             id: recipientId
           },
-          message: {
-            text: options.substring(0, 640),
-            quick_replies: [
-              textButton('Top Trending Items', 'QR_GET_PRODUCT_LIST', {limit: 3}),
-              textButton("What's on Sale", 'QR_GET_PRODUCT_LIST', {limit: 3}),
-              textButton('Get 3 products', 'QR_GET_PRODUCT_LIST', {limit: 3})
+          "message":{
+            "text": "Here's a quick reply!",
+            "quick_replies":[
+              {
+                "content_type":"text",
+                "title":"Search",
+                "payload":"<POSTBACK_PAYLOAD>",
+                "image_url":"http://example.com/img/red.png"
+              },
+              {
+                "content_type":"location"
+              },
+              {
+                "content_type":"text",
+                "title":"Something Else",
+                "payload":"<POSTBACK_PAYLOAD>"
+              }
             ]
-          },
+          }
         };
         callSendAPI(messageData);
-      });
 
       break;
 
