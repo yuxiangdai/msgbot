@@ -25,6 +25,8 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.json({ verify: verifyRequestSignature }));
 app.use(express.static('public'));
 
+var nlp_helper = require('./nlp_helper');
+
 /*
  * Open config/default.json and set your config values before running this code. 
  * You can also set them using environment variables.
@@ -211,6 +213,7 @@ function receivedMessage(event) {
 
   console.log("[receivedMessage] user (%d) page (%d) timestamp (%d) and message (%s)", 
     senderID, pageID, timeOfMessage, JSON.stringify(message));
+  console.log(message['nlp']['entities']['intent']);
 
   if (message.quick_reply) {
     console.log("[receivedMessage] quick_reply.payload (%s)", 
@@ -228,7 +231,9 @@ function receivedMessage(event) {
       case 'help':
         sendHelpOptionsAsButtonTemplates(senderID);
         break;
-      
+      case 'hi':
+        sendTextMessage(senderID, "sup");
+        break;
       default:
         // otherwise, just echo it back to the sender
         sendTextMessage(senderID, messageText);
