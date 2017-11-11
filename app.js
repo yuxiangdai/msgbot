@@ -210,10 +210,11 @@ function receivedMessage(event) {
   var pageID = event.recipient.id;
   var timeOfMessage = event.timestamp;
   var message = event.message;
+  var parsed = message['nlp']['entities'];
 
   console.log("[receivedMessage] user (%d) page (%d) timestamp (%d) and message (%s)", 
     senderID, pageID, timeOfMessage, JSON.stringify(message));
-  console.log(message['nlp']['entities']['intent']);
+  console.log(parsed);
 
   if (message.quick_reply) {
     console.log("[receivedMessage] quick_reply.payload (%s)", 
@@ -235,15 +236,15 @@ function receivedMessage(event) {
       // case 'info':
       default:
         // otherwise, just echo it back to the sender
-        sendProductInfo(senderID, messageText);
-        // sendTextMessage(senderID, messageText);
+        // sendProductInfo(senderID, messageText);
+        sendTextMessage(senderID, messageText);
     }
   }
 }
 
 
 
-function sendProductInfo(senderID, messageText){
+function sendProductInfo(recipientId, messageText){
   var messageData = {
     recipient: {
       id: recipientId
@@ -253,7 +254,7 @@ function sendProductInfo(senderID, messageText){
         type:"template",
         payload:{
           action: 'QR_GET_INFO',
-
+          template_type:"generic",
           name: messageText
         }
       }
