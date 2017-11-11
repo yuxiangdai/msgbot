@@ -231,15 +231,38 @@ function receivedMessage(event) {
       case 'help':
         sendHelpOptionsAsButtonTemplates(senderID);
         break;
-      case 'hi':
-        sendTextMessage(senderID, "sup");
-        break;
+      // sends info about a specific   
+      // case 'info':
       default:
         // otherwise, just echo it back to the sender
-        sendTextMessage(senderID, messageText);
+        sendProductInfo(senderID, messageText);
+        // sendTextMessage(senderID, messageText);
     }
   }
 }
+
+
+
+function sendProductInfo(senderID, messageText){
+  var messageData = {
+    recipient: {
+      id: recipientId
+    },
+    message:{
+      attachment:{
+        type:"template",
+        payload:{
+          action: 'QR_GET_INFO',
+
+          name: messageText
+        }
+      }
+    }
+  };
+
+  callSendAPI(messageData);
+}
+
 
 /*
  * Send a message with buttons.
@@ -326,6 +349,52 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
   }
 
   switch (requestPayload.action) {
+
+    case 'QR_GET_INFO':
+      var products = shopify.products({ "title": requestPayload.name});
+      
+      products.then(function(listOfProducs) {
+        listOfProducs.forEach(function(product) {
+          var url = HOST_URL + "/product.html?id="+product.id;
+          templateElements.push({
+            title: product.title,
+            subtitle: product.tags,
+            image_url: product.image.src,
+            buttons:[
+              {
+                "type":"web_url",
+                "url": url,
+                "title":"Read description",
+                "webview_height_ratio": "compact",
+                "messenger_extensions": "true"
+              },
+              sectionButton('Get options', 'QR_GET_PRODUCT_OPTIONS', {id: product.id})
+            ]
+          });
+        });
+
+      
+        var messageData = {
+          recipient: {
+            id: recipientId
+          },
+          message: {
+            attachment: {
+              type: "template",
+              payload: {
+                template_type: "generic",
+                elements: templateElements
+              }
+            }
+          }
+        };
+
+        callSendAPI(messageData);
+
+      });
+
+      break;
+
     case 'QR_GET_PRODUCT_LIST':
       var products = shopify.product.list({ limit: requestPayload.limit});
       products.then(function(listOfProducs) {
