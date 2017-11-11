@@ -242,24 +242,48 @@ function receivedMessage(event) {
 
 
 
-function sendProductInfo(senderID, messageText){
-  var messageData = {
-    recipient: {
-      id: recipientId
-    },
-    message:{
-      attachment:{
-        type:"template",
-        payload:{
-          action: 'QR_GET_INFO',
+function sendProductInfo(recipientId, messageText){
 
-          name: messageText
+  var products = shopify.product.list({"title": messageText});
+  
+  products.then(function(listOfProducs) {
+    listOfProducs.forEach(function(product) {
+      var url = HOST_URL + "/product.html?id="+product.id;
+      templateElements.push({
+        title: product.title,
+        subtitle: product.tags,
+        image_url: product.image.src,
+        buttons:[
+          {
+            "type":"web_url",
+            "url": url,
+            "title":"Read description",
+            "webview_height_ratio": "compact",
+            "messenger_extensions": "true"
+          },
+          sectionButton('Get options', 'QR_GET_PRODUCT_OPTIONS', {id: product.id})
+        ]
+      });
+    });
+
+  
+    var messageData = {
+      recipient: {
+        id: recipientId
+      },
+      message: {
+        attachment: {
+          type: "template",
+          payload: {
+            template_type: "generic",
+            elements: templateElements
+          }
         }
       }
-    }
-  };
+    };
 
-  callSendAPI(messageData);
+    callSendAPI(messageData);
+  })
 }
 
 
