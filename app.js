@@ -376,48 +376,29 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
   }
 
   switch (requestPayload.action) {
-
-    case 'QR_GET_INFO':
+    case 'QR_GET_GREETING':
       var products = shopify.products({ "title": requestPayload.name});
       
-      products.then(function(listOfProducs) {
-        listOfProducs.forEach(function(product) {
-          var url = HOST_URL + "/product.html?id="+product.id;
-          templateElements.push({
-            title: product.title,
-            subtitle: product.tags,
-            image_url: product.image.src,
-            buttons:[
-              {
-                "type":"web_url",
-                "url": url,
-                "title":"Read description",
-                "webview_height_ratio": "compact",
-                "messenger_extensions": "true"
-              },
-              sectionButton('Get options', 'QR_GET_PRODUCT_OPTIONS', {id: product.id})
-            ]
-          });
+      var sh_product = shopify.product.get(requestPayload.id);
+      sh_product.then(function(product) {
+        var options = '';
+        product.options.map(function(option) {
+          options = options + option.name + ': ' + option.values.join(',') + "\n";
         });
-
-      
         var messageData = {
           recipient: {
             id: recipientId
           },
           message: {
-            attachment: {
-              type: "template",
-              payload: {
-                template_type: "generic",
-                elements: templateElements
-              }
-            }
-          }
+            text: options.substring(0, 640),
+            quick_replies: [
+              textButton('Top Trending Items', 'QR_GET_PRODUCT_LIST', {limit: 3}),
+              textButton("What's on Sale", 'QR_GET_PRODUCT_LIST', {limit: 3}),
+              textButton('Get 3 products', 'QR_GET_PRODUCT_LIST', {limit: 3})
+            ]
+          },
         };
-
         callSendAPI(messageData);
-
       });
 
       break;
@@ -605,7 +586,7 @@ function callSendProfile() {
           }
       ] ,
       "get_started": {
-        "payload": JSON.stringify({action: 'QR_GET_PRODUCT_LIST', limit: 3})
+        "payload": JSON.stringify({action: 'QR_GET_GREETING', limit: 3})
       },
       "whitelisted_domains":[
         HOST_URL
