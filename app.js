@@ -27,6 +27,10 @@ app.use(express.static('public'));
 
 var nlp_helper = require('./nlp_helper');
 
+var shopping_cart = {
+  users: {}
+};
+
 /*
  * Open config/default.json and set your config values before running this code. 
  * You can also set them using environment variables.
@@ -237,7 +241,7 @@ function receivedMessage(event) {
       default:
         // otherwise, just echo it back to the sender
         sendProductInfo(senderID, messageText);
-        // sendTextMessage(senderID, messageText);
+        //sendTextMessage(senderID, messageText);
     }
   }
 }
@@ -369,6 +373,14 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
   switch (requestPayload.action) {
 
 
+
+    // Flesh out QR payloads
+    case 'QR_SAVED_ITEMS':
+      var messageData = {
+
+      }
+    
+    break;
 
 
 
