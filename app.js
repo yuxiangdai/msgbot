@@ -256,17 +256,8 @@ function sendProductInfo(recipientId, messageText){
       templateElements.push({
         title: product.title,
         subtitle: product.tags,
-        image_url: product.image.src,
-        // buttons:[
-        //   {
-        //     "type":"web_url",
-        //     "url": url,
-        //     "title":"Read description",
-        //     "webview_height_ratio": "compact",
-        //     "messenger_extensions": "true"
-        //   },
-          // sectionButton('Get options', 'QR_GET_PRODUCT_OPTIONS', {id: product.id})
-        // ]
+        image_url: product.image.src
+      
       });
     });
 
@@ -376,6 +367,11 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
   }
 
   switch (requestPayload.action) {
+
+
+
+
+
     case 'QR_GET_GREETING':
         var messageData = {
           recipient: {
