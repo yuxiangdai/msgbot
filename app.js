@@ -382,7 +382,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
             id: recipientId
           },
           "message":{
-            "text": "Here's a quick reply!",
+            "text": "Please select one of the options below!",
             "quick_replies":[
               {
                 "content_type":"text",
@@ -390,11 +390,13 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
                 "payload":"QR_GET_PRODUCT_LIST"
               },
               {
-                "content_type":"location"
+                "content_type":"text",
+                "title":"Trending",
+                "payload":"QR_GET_PRODUCT_LIST"
               },
               {
                 "content_type":"text",
-                "title":"Something Else",
+                "title":"Saved Items",
                 "payload":"QR_GET_PRODUCT_LIST"
               }
             ]
