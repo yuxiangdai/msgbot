@@ -387,8 +387,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
               {
                 "content_type":"text",
                 "title":"Search",
-                "payload":"<POSTBACK_PAYLOAD>",
-                "image_url":"http://example.com/img/red.png"
+                "payload":"QR_GET_PRODUCT_LIST"
               },
               {
                 "content_type":"location"
@@ -396,7 +395,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
               {
                 "content_type":"text",
                 "title":"Something Else",
-                "payload":"<POSTBACK_PAYLOAD>"
+                "payload":"QR_GET_PRODUCT_LIST"
               }
             ]
           }
