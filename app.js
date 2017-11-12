@@ -27,10 +27,9 @@ app.use(express.static('public'));
 
 var nlp_helper = require('./nlp_helper');
 
-var shopping_cart = [];
-
-//in users, there should be recipient id, and a product obejct
-//recipientID: {(list of products) }
+var shopping_cart = {
+  users: {}
+};
 
 /*
  * Open config/default.json and set your config values before running this code.
@@ -244,22 +243,16 @@ function receivedMessage(event) {
       default:
         // otherwise, just echo it back to the sender
         var thresConf = 0.8; //threshhold_confidence
-
+        //code for general check for what is proposed
+        // if (parsed['____'] != null){
+        //   _____ = parsed['___'][0]['confidence'] > thresConf;
+        // }
         //find out if greeting was proposed
         var greet = 0;
         if (parsed['greeting'] != null){
           greet = parsed['greeting'][0]['confidence'] > thresConf;
         }
-        //find out if bye was proposed
-        var bye = 0;
-        if (parsed['bye'] != null){
-          bye = parsed['bye'][0]['confidence'] > thresConf;
-        }
-        //find out if thanks was proposed
-        var thanks = 0;
-        if (parsed['thanks'] != null){
-          thanks = parsed['thanks'][0]['confidence'] > thresConf;
-        }
+
         //find if instruction or question proposed
         var instr = 0;
         var quest = 0;
@@ -276,10 +269,6 @@ function receivedMessage(event) {
         var proposal = 'initial';
         if (greet) {
           proposal = 'greet';
-        } else if (bye){
-          proposal = 'bye';
-        } else if (thanks){
-          proposal = 'thanks';
         } else if (inquiry){
           proposal = 'inquiry';
         } else {
@@ -288,18 +277,8 @@ function receivedMessage(event) {
         switch (proposal){
           case 'greet':
             var arrofGreetings = ['Hi!','Hello!','Hey!'];
-            var greettosend = arrofGreetings[Math.floor(Math.random()*arrofGreetings.length)];
+            var greettosend = arrofGreetings[Math.floor(Math.random()*items.length)];
             sendTextMessage(senderID, greettosend);
-          break;
-          case 'bye':
-            var arrofByes = ['See you later!','Goodbye!','Bye!'];
-            var byetosend = arrofByes[Math.floor(Math.random()*arrofByes.length)];
-            sendTextMessage(senderID, byetosend);
-          break;
-          case 'thanks':
-            var arrThanks = ['Anything else I can help with? :)','Happy to help!','No problem!!'];
-            var thankstosend = arrThanks[Math.floor(Math.random()*arrThanks.length)];
-            sendTextMessage(senderID, thankstosend);
           break;
           case 'inquiry':
             if (parsed['descriptor'] != null){
@@ -364,15 +343,7 @@ function sendProductInfo(recipientId, product_arr, lcm){
   var product_type = product_arr[product_arr.length - 1];
 
   
-  var sectionButton = function(title, action, options) {
-    var payload = options | {};
-    payload = Object.assign(options, {action: action});
-    return {
-      type: 'postback',
-      title: title,
-      payload: JSON.stringify(payload)
-    };
-  }
+
 
     var descriptor = product_arr[product_arr.length - 1];
     var newProductList = [];
@@ -431,8 +402,10 @@ function sendProductInfo(recipientId, product_arr, lcm){
       }
   
       callSendAPI(messageData);
-    });
+
+      });
 }
+
 
 /*
  * Send a message with buttons.
@@ -490,16 +463,6 @@ function handleQuickReplyResponse(event) {
  * swipe from side to side to see it
  *
  */
-
-function contains(list, recipientID){
-  for(i = 0; i < len(list); i++){
-    if (list[i].id === recipientID){
-      return i
-    }
-  }
-  return false
-}
-
 function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature) {
   console.log("[respondToHelpRequestWithTemplates] handling help request for %s",
     requestForHelpOnFeature);
@@ -530,59 +493,23 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
   switch (requestPayload.action) {
 
     case 'QR_SAVED_ITEMS':
-      if(contains(shopping_cart, recipientID) === false)
+      if(!shopping_cart.users[recipientId])
       {
         var message = "You have no items"
-        var messageData = {
-          recipient: {
-            id: recipientId
-          },
-          "message":{
-            "text": message
-          }
-        }
-        callSendAPI(messageData);
       } else {
-        var  i = contains(shopping_cart, recipientID);
-        shopping_cart[i]['product'].then(function(listOfProducs) {
-          listOfProducs.forEach(function(product) {
-            var url = HOST_URL + "/product.html?id="+product.id;
-            templateElements.push({
-              title: product.title,
-              subtitle: product.tags,
-              image_url: product.image.src,
-              buttons:[
-                {
-                  "type":"web_url",
-                  "url": url,
-                  "title":"Read description",
-                  "webview_height_ratio": "compact",
-                  "messenger_extensions": "true"
-                },
-                sectionButton('Get options', 'QR_GET_PRODUCT_OPTIONS', {id: product.id}),
-                sectionButton('Save this item', 'QR_SAVE', {id: product.id})
-              ]
-            });
-          });
-    
-          var messageData = {
-            recipient: {
-              id: recipientId
-            },
-            message: {
-              "text": "These are the top 10 best selling products",
-              attachment: {
-                type: "template",
-                payload: {
-                  template_type: "generic",
-                  elements: templateElements
-                }
-              }
-            }
-          };
-          callSendAPI(messageData);
-        });
+        var message = "You have some items"
       }
+
+      var messageData = {
+        recipient: {
+          id: recipientId
+        },
+        "message":{
+          "text": message
+        }
+      }
+      callSendAPI(messageData);
+
     break;
 
     case 'QR_SEARCH':
@@ -743,20 +670,13 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
       break;
 
       case 'QR_SAVE':
-        
-        var recipientID_str = recipientID.toString();
-        var sh_product = shopify.product.get(requestPayload.id);
-        if (contains(shopping_cart, recipientID) === false){
 
-          shopping_cart.push({'id': recipientID_str, 'product': {sh_product}});
 
-        }
-        else{
-          var i = contains(shopping_cart, recipientID);
-          shopping_cart[i]['product'].push(sh_product);
-        }
+
       break;
+
   }
+
 }
 
 /*
