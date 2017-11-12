@@ -263,6 +263,10 @@ function receivedMessage(event) {
         case 'reset':
           reset(senderID);
           break;
+        case 'hello':
+          hello(senderID);
+        case 'thanks':
+          thanks(senderID);
         // sends info about a specific
         // case 'info':
         default:
@@ -356,6 +360,33 @@ function receivedMessage(event) {
   }
 }
 
+
+function hello(recipientId){
+
+  var messageData = {
+    recipient: {
+      id: recipientId
+    },
+    "message":{
+      "text": "hello."
+    }
+  };
+  callSendAPI(messageData);
+}
+
+
+function thanks(recipientId){
+  
+    var messageData = {
+      recipient: {
+        id: recipientId
+      },
+      "message":{
+        "text": "you're welcome."
+      }
+    };
+    callSendAPI(messageData);
+  }
 
 function reset(recipientId){
 
