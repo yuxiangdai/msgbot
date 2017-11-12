@@ -295,10 +295,10 @@ function receivedMessage(event) {
               }
             }
             var product = [descriptor, prod_type];
-            sendProductInfo(senderID, product, lcm);
+            sendProductInfo(senderID, productArr, lcm);
           break;
           default:
-            sendProductInfo(senderID, [" ", messageText], lcm);
+            sendProductInfo(senderID, [messageText], lcm);
         }
         //sendTextMessage(senderID, messageText);
     }
@@ -333,95 +333,38 @@ function reset(recipientId){
     }
   };
   callSendAPI(messageData);
-
-  // var messageData = {
-  //   recipient: {
-  //     id: recipientId
-  //   },
-
-  // message:{
-  //   attachment:{
-  //     type:"template",
-  //     payload:{
-  //       template_type:"button",
-  //       text:"Click the button before to get a list of 3 of our products.",
-  //       buttons:[
-  //         {
-  //           "type":"postback",
-  //           "title":"Get 3 products",
-  //           "payload":JSON.stringify({action: 'QR_GET_PRODUCT_LIST', limit: 3})
-  //         },
-  //         {
-  //           "type":"postback",
-  //           "title":"Get 3 products",
-  //           "payload":JSON.stringify({action: 'QR_SAVED_ITEMS', limit: 3})
-  //         },
-  //         {
-  //           "type":"postback",
-  //           "title":"Search",
-  //           "payload":JSON.stringify({action: 'QR_SEARCH', limit: 3})
-  //         }
-  //         // limit of three buttons
-  //       ]
-  //     }
-  //   }
-  // }
-  // }
-  //callSendAPI(messageData);
 }
 
-function sendProductInfo(recipientId, product_arr){
+function sendProductInfo(recipientId, product_arr, lcm){
   var templateElements = [];
   var productList = [];
   var productIDList = [];
   var descriptors = product_arr.slice(0, product_arr.length - 1)
   var product_type = product_arr[product_arr.length - 1];
-  console.log(product_type)
-  console.log(descriptors)
 
-  for(var i = 0; i <= product_arr.length - 1; i++){
-    var descriptor = product_arr[i];
+  
+  var sectionButton = function(title, action, options) {
+    var payload = options | {};
+    payload = Object.assign(options, {action: action});
+    return {
+      type: 'postback',
+      title: title,
+      payload: JSON.stringify(payload)
+    };
+  }
+
+    var descriptor = product_arr[product_arr.length - 1];
     var newProductList = [];
     var newProductIDList = [];
 
-    var product = shopify.product.list({"title": descriptor}); // title tag and description
-    var productTagSearch = shopify.product.list({"tags": descriptor});
-    var productDescSearch = shopify.product.list({"body_html": descriptor});
-
-    product.then(function(listOfProducs) {
+    var products = shopify.product.list({"title": descriptor}); // title tag and description
+    // var productTagSearch = shopify.product.list({"tags": descriptor});
+    // var productDescSearch = shopify.product.list({"body_html": descriptor});
+    products.then(function(listOfProducs) {
       listOfProducs.forEach(function(product) {
-        newProductList.push(product)
-        newProductIDList.push(product.id)
-      });
-    })
-
-    productTagSearch.then(function(listOfProducs) {
-      listOfProducs.forEach(function(product) {
-          // check if ID not yet in list
-          if(newProductIDList.indexOf(product.id) < 0){
-            newProductList.push(product)
-            newProductIDList.push(product.id)
-          }
-      });
-    })
-
-    productDescSearch.then(function(listOfProducs) {
-      listOfProducs.forEach(function(product) {
-          // check if ID not yet in list
-          if(newProductIDList.indexOf(product.id) < 0){
-            newProductList.push(product)
-            newProductIDList.push(product.id)
-          }
-      });
-
-      if(i == 0){
-        productIDList = newProductIDList;
-        productList = newProductList;
-      }
-      else if(i == product_arr.length - 1){
-        productList.forEach(function(product){
+        
           var url = HOST_URL + "/product.html?id="+product.id;
-
+          
           templateElements.push({
             title: product.title,
             subtitle: product.tags,
@@ -438,126 +381,36 @@ function sendProductInfo(recipientId, product_arr){
               sectionButton('Save this item', 'QR_SAVE', {id: product.id})
             ]
           });
-        });
-
-        if(templateElements.length == 0){
-          var messageData = {
-            recipient: {
-              id: recipientId
-            },
-            message: {
-              text: "I didn't find anything related to '" + lcm + "'"
-            }
-          };
-        } else {
-          var messageData = {
-            recipient: {
-              id: recipientId
-            },
-            message: {
-              attachment: {
-                type: "template",
-                payload: {
-                  template_type: "generic",
-                  elements: templateElements.slice(0, 10)
-                }
+      });
+  
+      if(templateElements.length == 0){
+        var messageData = {
+          recipient: {
+            id: recipientId
+          },
+          message: {
+            text: "No items found! Try again."
+          }
+        };
+      } else {
+        var messageData = {
+          recipient: {
+            id: recipientId
+          },
+          message: {
+            attachment: {
+              type: "template",
+              payload: {
+                template_type: "generic",
+                elements: templateElements
               }
             }
-          };
-        }
-
-        callSendAPI(messageData);
-      }     
-      else {
-        productIDList.forEach(function(productID){
-          if(newProductIDList.indexOf(productID) >= 0){
-
-          } else {
-            var i = productIDList.indexOf(productID);
-            if(i != -1) {
-              productIDList.splice(i, 1);
-              productList.splice(i, 1);
-            }
           }
-        })
+        };
       }
-    })
-  }
-
-
-
-  // var product = shopify.product.list({"title": product_type}); // title tag and description
-  // var productTagSearch = shopify.product.list({"tags": product_type});
-  // var productDescSearch = shopify.product.list({"body_html": product_type});
-
-  // var newProductList = [];
-  // var newProductIDList = [];
-
-
-  // product.then(function(listOfProducs) {
-  //   listOfProducs.forEach(function(product) {
-  //     newProductList.push(product)
-  //     newProductIDList.push(product.id)
-  //   });
-  // })
-
-  // productTagSearch.then(function(listOfProducs) {
-  //   listOfProducs.forEach(function(product) {
-
-  //       if(newProductIDList.indexOf(product.id) < 0){
-  //         newProductList.push(product)
-  //         newProductIDList.push(product.id)
-  //       }
-  //   });
-  // })
-
-  // productDescSearch.then(function(listOfProducs) {
-  //   listOfProducs.forEach(function(product) {
-  //     if(productIDList.indexOf(product.id) < 0 && productList.length <= 10){
-  //       productList.push(product)
-  //       productIDList.push(product.id)
-  //     }
-  //   });
-
-
-  //   productList.forEach(function(product){
-  //     var url = HOST_URL + "/product.html?id="+product.id;
-
-  //     templateElements.push({
-  //       title: product.title,
-  //       subtitle: product.tags,
-  //       image_url: product.image.src
-  //     });
-  //   });
-
-  //   if(templateElements.length == 0){
-  //     var messageData = {
-  //       recipient: {
-  //         id: recipientId
-  //       },
-  //       message: {
-  //         text: "I didn't find anything related to '" + lcm + "'"
-  //       }
-  //     };
-  //   } else {
-  //     var messageData = {
-  //       recipient: {
-  //         id: recipientId
-  //       },
-  //       message: {
-  //         attachment: {
-  //           type: "template",
-  //           payload: {
-  //             template_type: "generic",
-  //             elements: templateElements.slice(0, 10)
-  //           }
-  //         }
-  //       }
-  //     };
-  //   }
-
-  //   callSendAPI(messageData);
-  //})
+  
+      callSendAPI(messageData);
+    });
 }
 
 
