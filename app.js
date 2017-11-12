@@ -269,11 +269,11 @@ function receivedMessage(event) {
               var descriptor = parsed['descriptor'][0]['value'];
             }
           }
-          var product = [prod_type, descriptor];
+          var product = [descriptor, prod_type];
           sendProductInfo(senderID, product, lcm);
 
         } else {
-          sendProductInfo(senderID, [messageText, " "], lcm);
+          sendProductInfo(senderID, [" ", messageText], lcm);
         }
         //sendTextMessage(senderID, messageText);
     }
@@ -329,84 +329,185 @@ function sendProductInfo(recipientId, product_arr, lcm){
     // cut plurals "e.g. hoodies vs hoodie"
 
 
-
   var templateElements = [];
   var productList = [];
   var productIDList = [];
-  var product_type = product_arr[0];
-  var descriptor = product_arr[1];
+  var descriptors = product_arr.slice(0, product_arr.length - 1)
+  var product_type = product_arr[product_arr.length - 1];
   console.log(product_type)
-  console.log(descriptor)
+  console.log(descriptors)
 
+  for(var i = 0; i <= product_arr.length - 1; i++){
 
-  var product = shopify.product.list({"title": product_type}); // title tag and description
-  var productDescSearch = shopify.product.list({"body_html": product_type}); 
-  var productTagSearch = shopify.product.list({"tags": product_type}); 
+    var descriptor = product_arr[i];
+    var newProductList = [];
+    var newProductIDList = [];
 
+    var product = shopify.product.list({"title": descriptor}); // title tag and description
+    var productTagSearch = shopify.product.list({"tags": descriptor});
+    var productDescSearch = shopify.product.list({"body_html": descriptor}); 
   
-
-
-
-  product.then(function(listOfProducs) {
-    listOfProducs.forEach(function(product) {
-        console.log(product)
-        productList.push(product)
-        productIDList.push(product.id)
-        var url = HOST_URL + "/product.html?id="+product.id;
-        
-        templateElements.push({
-          title: product.title,
-          subtitle: product.tags,
-          image_url: product.image.src
-        });
-    });
-      // put inside then function
-    if(templateElements.length == 0){
-      var messageData = {
-        recipient: {
-          id: recipientId
-        },
-        message: {
-          text: "I didn't find anything related to '" + lcm + "'"
-        }
-      };
-    } else {
-      var messageData = {
-        recipient: {
-          id: recipientId
-        },
-        message: {
-          attachment: {
-            type: "template",
-            payload: {
-              template_type: "generic",
-              elements: templateElements.slice(0, 10)
-            }
-          }
-        }
-      };
-    }
-
-    callSendAPI(messageData);
-
+    product.then(function(listOfProducs) {
+      listOfProducs.forEach(function(product) {      
+        newProductList.push(product)
+        newProductIDList.push(product.id) 
+      });
     })
 
-  productDescSearch.then(function(listOfProducs) {
-    listOfProducs.forEach(function(product) {
-        productList.push(product)
-        productIDList.push(product.id)
-    });
-  })
+    productTagSearch.then(function(listOfProducs) {
+      listOfProducs.forEach(function(product) {
+          // check if ID not yet in list
+          if(newProductIDList.indexOf(product.id) < 0){
+            newProductList.push(product)
+            newProductIDList.push(product.id)
+          } 
+      });
+    })
 
-  productTagSearch.then(function(listOfProducs) {
-    listOfProducs.forEach(function(product) {
-        productList.push(product)
-    });
-  })
+    productDescSearch.then(function(listOfProducs) {
+      listOfProducs.forEach(function(product) {
+          // check if ID not yet in list
+          if(newProductIDList.indexOf(product.id) < 0){
+            newProductList.push(product)
+            newProductIDList.push(product.id)
+          } 
+      });
+
+      if(i == 0){
+        productIDList = newProductIDList;
+        productList = newProductList;
+      } 
+      else if(i == product_arr.length - 1){
+        productList.forEach(function(product){
+          var url = HOST_URL + "/product.html?id="+product.id;
+          
+          templateElements.push({
+            title: product.title,
+            subtitle: product.tags,
+            image_url: product.image.src
+          });
+        });
+      
+        if(templateElements.length == 0){
+          var messageData = {
+            recipient: {
+              id: recipientId
+            },
+            message: {
+              text: "I didn't find anything related to '" + lcm + "'"
+            }
+          };
+        } else {
+          var messageData = {
+            recipient: {
+              id: recipientId
+            },
+            message: {
+              attachment: {
+                type: "template",
+                payload: {
+                  template_type: "generic",
+                  elements: templateElements.slice(0, 10)
+                }
+              }
+            }
+          };
+        }
+    
+        callSendAPI(messageData);
+      }
+      
+      else {
+        productIDList.forEach(function(productID){
+          if(newProductIDList.indexOf(productID) >= 0){
+
+          } else {
+            var i = productIDList.indexOf(productID);
+            if(i != -1) {
+              productIDList.splice(i, 1);
+              productList.splice(i, 1);
+            }
+            
+          }
+        })
+      }
+    })
+  }
 
 
+  
+  // var product = shopify.product.list({"title": product_type}); // title tag and description
+  // var productTagSearch = shopify.product.list({"tags": product_type});
+  // var productDescSearch = shopify.product.list({"body_html": product_type}); 
+
+  // var newProductList = [];
+  // var newProductIDList = [];
 
 
+  // product.then(function(listOfProducs) {
+  //   listOfProducs.forEach(function(product) {      
+  //     newProductList.push(product)
+  //     newProductIDList.push(product.id) 
+  //   });
+  // })
+
+  // productTagSearch.then(function(listOfProducs) {
+  //   listOfProducs.forEach(function(product) {
+        
+  //       if(newProductIDList.indexOf(product.id) < 0){
+  //         newProductList.push(product)
+  //         newProductIDList.push(product.id)
+  //       } 
+  //   });
+  // })
+
+  // productDescSearch.then(function(listOfProducs) {
+  //   listOfProducs.forEach(function(product) {
+  //     if(productIDList.indexOf(product.id) < 0 && productList.length <= 10){
+  //       productList.push(product)
+  //       productIDList.push(product.id)
+  //     } 
+  //   });
+
+
+  //   productList.forEach(function(product){
+  //     var url = HOST_URL + "/product.html?id="+product.id;
+      
+  //     templateElements.push({
+  //       title: product.title,
+  //       subtitle: product.tags,
+  //       image_url: product.image.src
+  //     });
+  //   });
+  
+  //   if(templateElements.length == 0){
+  //     var messageData = {
+  //       recipient: {
+  //         id: recipientId
+  //       },
+  //       message: {
+  //         text: "I didn't find anything related to '" + lcm + "'"
+  //       }
+  //     };
+  //   } else {
+  //     var messageData = {
+  //       recipient: {
+  //         id: recipientId
+  //       },
+  //       message: {
+  //         attachment: {
+  //           type: "template",
+  //           payload: {
+  //             template_type: "generic",
+  //             elements: templateElements.slice(0, 10)
+  //           }
+  //         }
+  //       }
+  //     };
+  //   }
+
+  //   callSendAPI(messageData);
+  //})
 }
 
 
