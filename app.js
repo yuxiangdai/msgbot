@@ -269,7 +269,7 @@ function receivedMessage(event) {
           quest = parsed['question'][0]['confidence'] > thresConf;
         }
 
-        console.log(parsed['instruction'][0]['confidence'])
+        //console.log(parsed['instruction'][0]['confidence'])
         var inquiry = instr || quest;
         var productArr = [];
         var proposal = 'initial';
@@ -400,7 +400,6 @@ function sendProductInfo(recipientId, product_arr){
   console.log(descriptors)
 
   for(var i = 0; i <= product_arr.length - 1; i++){
-
     var descriptor = product_arr[i];
     var newProductList = [];
     var newProductIDList = [];
@@ -488,8 +487,7 @@ function sendProductInfo(recipientId, product_arr){
         }
 
         callSendAPI(messageData);
-      }
-
+      }     
       else {
         productIDList.forEach(function(productID){
           if(newProductIDList.indexOf(productID) >= 0){
@@ -500,7 +498,6 @@ function sendProductInfo(recipientId, product_arr){
               productIDList.splice(i, 1);
               productList.splice(i, 1);
             }
-
           }
         })
       }
