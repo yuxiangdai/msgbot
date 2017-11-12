@@ -214,11 +214,15 @@ function receivedMessage(event) {
   var senderID = event.sender.id;
   var pageID = event.recipient.id;
   var timeOfMessage = event.timestamp;
-  var message = event.message;
-  var parsed = message['nlp']['entities'];
+  
+    var message = event.message;
+    var parsed = message['nlp']['entities'];
+  
+ 
 
   console.log("[receivedMessage] user (%d) page (%d) timestamp (%d) and message (%s)",
-    senderID, pageID, timeOfMessage, JSON.stringify(message));
+    // senderID, pageID, timeOfMessage, JSON.stringify(message));
+    senderID, pageID, timeOfMessage, JSON.stringify(event.message));
   console.log(parsed);
 
   if (message.quick_reply) {
@@ -226,6 +230,12 @@ function receivedMessage(event) {
       message.quick_reply.payload);
     handleQuickReplyResponse(event);
     return;
+  }
+
+  var msgAttach = message.attachment;
+  if (msgAttach && msgAttach.type == "image"){
+    url = msgAttach.payload.url;
+    console.log("image url:",url);
   }
 
   var messageText = message.text;
@@ -341,7 +351,7 @@ function sendProductInfo(recipientId, product_arr, lcm){
   var templateElements = [];
   var productList = [];
   var productIDList = [];
-  var descriptors = product_arr.slice(0, product_arr.length - 1)
+  var descriptors = product_arr[0]
   var product_type = product_arr[product_arr.length - 1];
   console.log(product_arr)
   
@@ -364,9 +374,11 @@ function sendProductInfo(recipientId, product_arr, lcm){
     // var productDescSearch = shopify.product.list({"body_html": descriptor});
     products.then(function(listOfProducs) {
       listOfProducs.forEach(function(product) {
-        
+
           var url = HOST_URL + "/product.html?id="+product.id;
-          
+
+          if(descriptors != null){
+          if(product.title.contains(descriptors)){
           templateElements.push({
             title: product.title,
             subtitle: product.tags,
@@ -382,7 +394,8 @@ function sendProductInfo(recipientId, product_arr, lcm){
               sectionButton('Get options', 'QR_GET_PRODUCT_OPTIONS', {id: product.id}),
               sectionButton('Save this item', 'QR_SAVE', {id: product.id})
             ]
-          });
+          })
+        }}
       });
   
       if(templateElements.length == 0){
