@@ -244,6 +244,23 @@ function receivedMessage(event) {
       default:
         // otherwise, just echo it back to the sender
         var thresConf = 0.8; //threshhold_confidence
+
+        //find out if greeting was proposed
+        var greet = 0;
+        if (parsed['greeting'] != null){
+          greet = parsed['greeting'][0]['confidence'] > thresConf;
+        }
+        //find out if bye was proposed
+        var bye = 0;
+        if (parsed['bye'] != null){
+          bye = parsed['bye'][0]['confidence'] > thresConf;
+        }
+        //find out if thanks was proposed
+        var thanks = 0;
+        if (parsed['thanks'] != null){
+          thanks = parsed['thanks'][0]['confidence'] > thresConf;
+        }
+        //find if instruction or question proposed
         var instr = 0;
         var quest = 0;
         if (parsed['instruction'] != null){
@@ -253,27 +270,56 @@ function receivedMessage(event) {
           quest = parsed['question'][0]['confidence'] > thresConf;
         }
 
-        console.log(parsed['instruction'][0]['confidence'])
+        //console.log(parsed['instruction'][0]['confidence'])
         var inquiry = instr || quest;
-        var productArr = []
-        if (inquiry) {
-          if (parsed['product_type'] != null){
-            if (parsed['product_type'][0]['confidence'] > thresConf) {
-              var prod_type = parsed['product_type'][0]['value'];
-              productArr.push(prod_type);
-            }
-          }
-          if (parsed['descriptor'] != null){
-            if (parsed['descriptor'][0]['confidence'] > thresConf) {
-              var descriptor = parsed['descriptor'][0]['value'];
-              var descripArr = descriptor.split(' ');
-              productArr.concat(descripArr);
-
-            }
-          }
-          sendProductInfo(senderID, productArr);
+        var productArr = [];
+        var proposal = 'initial';
+        if (greet) {
+          proposal = 'greet';
+        } else if (bye){
+          proposal = 'bye';
+        } else if (thanks){
+          proposal = 'thanks';
+        } else if (inquiry){
+          proposal = 'inquiry';
         } else {
-          sendProductInfo(senderID, [messageText," "]);
+          proposal = 'undefined';
+        }
+        switch (proposal){
+          case 'greet':
+            var arrofGreetings = ['Hi!','Hello!','Hey!'];
+            var greettosend = arrofGreetings[Math.floor(Math.random()*arrofGreetings.length)];
+            sendTextMessage(senderID, greettosend);
+          break;
+          case 'bye':
+            var arrofByes = ['See you later!','Goodbye!','Bye!'];
+            var byetosend = arrofByes[Math.floor(Math.random()*arrofByes.length)];
+            sendTextMessage(senderID, byetosend);
+          break;
+          case 'thanks':
+            var arrThanks = ['Anything else I can help with? :)','Happy to help!','No problem!!'];
+            var thankstosend = arrThanks[Math.floor(Math.random()*arrThanks.length)];
+            sendTextMessage(senderID, thankstosend);
+          break;
+          case 'inquiry':
+            if (parsed['descriptor'] != null){
+              if (parsed['descriptor'][0]['confidence'] > thresConf) {
+                var descriptor = parsed['descriptor'][0]['value'];
+                var descripArr = descriptor.split(' ');
+                productArr = descripArr;
+              }
+            }
+            if (parsed['product_type'] != null){
+              if (parsed['product_type'][0]['confidence'] > thresConf) {
+                var prod_type = parsed['product_type'][0]['value'];
+                productArr.push(prod_type);
+              }
+            }
+            var product = [descriptor, prod_type];
+            sendProductInfo(senderID, product, lcm);
+          break;
+          default:
+            sendProductInfo(senderID, [" ", messageText], lcm);
         }
         //sendTextMessage(senderID, messageText);
     }
@@ -345,72 +391,194 @@ function reset(recipientId){
   //callSendAPI(messageData);
 }
 
-
 function sendProductInfo(recipientId, product_arr){
-
   var templateElements = [];
-  var product_type = product_arr[0];
-  var descriptor = product_arr[1];
+  var productList = [];
+  var productIDList = [];
+  var descriptors = product_arr.slice(0, product_arr.length - 1)
+  var product_type = product_arr[product_arr.length - 1];
   console.log(product_type)
-  console.log(descriptor)
-  var products = shopify.product.list({"title": product_type}); // title tag and description
+  console.log(descriptors)
 
-  //var products = shopify.collectionListing.list({"title": messageText});
-  if(!products){
+  for(var i = 0; i <= product_arr.length - 1; i++){
+    var descriptor = product_arr[i];
+    var newProductList = [];
+    var newProductIDList = [];
 
-  }
+    var product = shopify.product.list({"title": descriptor}); // title tag and description
+    var productTagSearch = shopify.product.list({"tags": descriptor});
+    var productDescSearch = shopify.product.list({"body_html": descriptor});
 
-  products.then(function(listOfProducs) {
-    listOfProducs.forEach(function(product) {
+    product.then(function(listOfProducs) {
+      listOfProducs.forEach(function(product) {
+        newProductList.push(product)
+        newProductIDList.push(product.id)
+      });
+    })
 
-        var url = HOST_URL + "/product.html?id="+product.id;
+    productTagSearch.then(function(listOfProducs) {
+      listOfProducs.forEach(function(product) {
+          // check if ID not yet in list
+          if(newProductIDList.indexOf(product.id) < 0){
+            newProductList.push(product)
+            newProductIDList.push(product.id)
+          }
+      });
+    })
 
-        templateElements.push({
-          title: product.title,
-          subtitle: product.tags,
-          image_url: product.image.src,
-          buttons:[
-            {
-              "type":"web_url",
-              "url": url,
-              "title":"Read description",
-              "webview_height_ratio": "compact",
-              "messenger_extensions": "true"
-            },
-            sectionButton('Get options', 'QR_GET_PRODUCT_OPTIONS', {id: product.id}),
-            sectionButton('Save this item', 'QR_SAVE', {id: product.id})
-          ]
+    productDescSearch.then(function(listOfProducs) {
+      listOfProducs.forEach(function(product) {
+          // check if ID not yet in list
+          if(newProductIDList.indexOf(product.id) < 0){
+            newProductList.push(product)
+            newProductIDList.push(product.id)
+          }
+      });
+
+      if(i == 0){
+        productIDList = newProductIDList;
+        productList = newProductList;
+      }
+      else if(i == product_arr.length - 1){
+        productList.forEach(function(product){
+          var url = HOST_URL + "/product.html?id="+product.id;
+
+          templateElements.push({
+            title: product.title,
+            subtitle: product.tags,
+            image_url: product.image.src,
+            buttons:[
+              {
+                "type":"web_url",
+                "url": url,
+                "title":"Read description",
+                "webview_height_ratio": "compact",
+                "messenger_extensions": "true"
+              },
+              sectionButton('Get options', 'QR_GET_PRODUCT_OPTIONS', {id: product.id}),
+              sectionButton('Save this item', 'QR_SAVE', {id: product.id})
+            ]
+          });
         });
-    });
 
-    if(templateElements.length == 0){
-      var messageData = {
-        recipient: {
-          id: recipientId
-        },
-        message: {
-          text: "No items found! Try again."
+        if(templateElements.length == 0){
+          var messageData = {
+            recipient: {
+              id: recipientId
+            },
+            message: {
+              text: "I didn't find anything related to '" + lcm + "'"
+            }
+          };
+        } else {
+          var messageData = {
+            recipient: {
+              id: recipientId
+            },
+            message: {
+              attachment: {
+                type: "template",
+                payload: {
+                  template_type: "generic",
+                  elements: templateElements.slice(0, 10)
+                }
+              }
+            }
+          };
         }
-      };
-    } else {
-      var messageData = {
-        recipient: {
-          id: recipientId
-        },
-        message: {
-          attachment: {
-            type: "template",
-            payload: {
-              template_type: "generic",
-              elements: templateElements
+
+        callSendAPI(messageData);
+      }     
+      else {
+        productIDList.forEach(function(productID){
+          if(newProductIDList.indexOf(productID) >= 0){
+
+          } else {
+            var i = productIDList.indexOf(productID);
+            if(i != -1) {
+              productIDList.splice(i, 1);
+              productList.splice(i, 1);
             }
           }
-        }
-      };
-    }
+        })
+      }
+    })
+  }
 
-    callSendAPI(messageData);
-  })
+
+
+  // var product = shopify.product.list({"title": product_type}); // title tag and description
+  // var productTagSearch = shopify.product.list({"tags": product_type});
+  // var productDescSearch = shopify.product.list({"body_html": product_type});
+
+  // var newProductList = [];
+  // var newProductIDList = [];
+
+
+  // product.then(function(listOfProducs) {
+  //   listOfProducs.forEach(function(product) {
+  //     newProductList.push(product)
+  //     newProductIDList.push(product.id)
+  //   });
+  // })
+
+  // productTagSearch.then(function(listOfProducs) {
+  //   listOfProducs.forEach(function(product) {
+
+  //       if(newProductIDList.indexOf(product.id) < 0){
+  //         newProductList.push(product)
+  //         newProductIDList.push(product.id)
+  //       }
+  //   });
+  // })
+
+  // productDescSearch.then(function(listOfProducs) {
+  //   listOfProducs.forEach(function(product) {
+  //     if(productIDList.indexOf(product.id) < 0 && productList.length <= 10){
+  //       productList.push(product)
+  //       productIDList.push(product.id)
+  //     }
+  //   });
+
+
+  //   productList.forEach(function(product){
+  //     var url = HOST_URL + "/product.html?id="+product.id;
+
+  //     templateElements.push({
+  //       title: product.title,
+  //       subtitle: product.tags,
+  //       image_url: product.image.src
+  //     });
+  //   });
+
+  //   if(templateElements.length == 0){
+  //     var messageData = {
+  //       recipient: {
+  //         id: recipientId
+  //       },
+  //       message: {
+  //         text: "I didn't find anything related to '" + lcm + "'"
+  //       }
+  //     };
+  //   } else {
+  //     var messageData = {
+  //       recipient: {
+  //         id: recipientId
+  //       },
+  //       message: {
+  //         attachment: {
+  //           type: "template",
+  //           payload: {
+  //             template_type: "generic",
+  //             elements: templateElements.slice(0, 10)
+  //           }
+  //         }
+  //       }
+  //     };
+  //   }
+
+  //   callSendAPI(messageData);
+  //})
 }
 
 /*
