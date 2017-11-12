@@ -214,16 +214,15 @@ function receivedMessage(event) {
   var senderID = event.sender.id;
   var pageID = event.recipient.id;
   var timeOfMessage = event.timestamp;
-  
-    var message = event.message;
-    var parsed = message['nlp']['entities'];
+  var message = event.message;
+  // var parsed = message['nlp']['entities'];
   
  
 
   console.log("[receivedMessage] user (%d) page (%d) timestamp (%d) and message (%s)",
     // senderID, pageID, timeOfMessage, JSON.stringify(message));
     senderID, pageID, timeOfMessage, JSON.stringify(event.message));
-  console.log(parsed);
+  
 
   if (message.quick_reply) {
     console.log("[receivedMessage] quick_reply.payload (%s)",
@@ -232,7 +231,7 @@ function receivedMessage(event) {
     return;
   }
 
-  var msgAttach = message.attachment;
+  var msgAttach = message.attachments;
   if (msgAttach && msgAttach.type == "image"){
     url = msgAttach.payload.url;
     console.log("image url:",url);
