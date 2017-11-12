@@ -676,7 +676,23 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
 
   switch (requestPayload.action) {
 
+    case 'QR_SAVE':
+
+    var recipientID_str = recipientID.toString();
+    var sh_product = shopify.product.get(requestPayload.id);
+    if (contains(shopping_cart, recipientID) === false){
+
+      shopping_cart.push({'id': recipientID_str, 'product': {sh_product}});
+
+    }
+    else{
+      var i = contains(shopping_cart, recipientID);
+      shopping_cart[i]['product'].push(sh_product);
+    }
+    break;
+
     case 'QR_SAVED_ITEMS':
+    
       if(contains(shopping_cart, recipientID) === false)
       {
         var message = "You have no items"
@@ -887,21 +903,6 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
           };
           callSendAPI(messageData);
         });
-      break;
-
-      case 'QR_SAVE':
-        
-        var recipientID_str = recipientID.toString();
-        var sh_product = shopify.product.get(requestPayload.id);
-        if (contains(shopping_cart, recipientID) === false){
-
-          shopping_cart.push({'id': recipientID_str, 'product': {sh_product}});
-
-        }
-        else{
-          var i = contains(shopping_cart, recipientID);
-          shopping_cart[i]['product'].push(sh_product);
-        }
       break;
   }
 }
