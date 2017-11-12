@@ -236,7 +236,10 @@ function receivedMessage(event) {
       case 'help':
         sendHelpOptionsAsButtonTemplates(senderID);
         break;
-      // sends info about a specific
+      case 'reset':
+        reset(senderID);
+        break;
+      // sends info about a specific   
       // case 'info':
       default:
         // otherwise, just echo it back to the sender
@@ -276,16 +279,86 @@ function receivedMessage(event) {
 }
 
 
+function reset(recipientId){
+
+
+  var textButton = function(title, action, options) {
+    var payload = options | {};
+    payload = Object.assign(options, {action: action});
+    return {
+      "content_type":"text",
+      title: title,
+      payload: JSON.stringify(payload)
+    };
+  }
+
+  var messageData = {
+    recipient: {
+      id: recipientId
+    },
+    "message":{
+      "text": "Please select one of the options below to begin.",
+      "quick_replies":[
+        textButton('Trending', 'QR_GET_PRODUCT_LIST', {limit: 3}),
+        textButton('Search', 'QR_SEARCH', {limit: 3}),
+        textButton('Saved', 'QR_SAVED_ITEMS', {limit: 3})
+
+      ]
+    }
+  };
+  callSendAPI(messageData);
+
+  // var messageData = {
+  //   recipient: {
+  //     id: recipientId
+  //   },
+
+  // message:{
+  //   attachment:{
+  //     type:"template",
+  //     payload:{
+  //       template_type:"button",
+  //       text:"Click the button before to get a list of 3 of our products.",
+  //       buttons:[
+  //         {
+  //           "type":"postback",
+  //           "title":"Get 3 products",
+  //           "payload":JSON.stringify({action: 'QR_GET_PRODUCT_LIST', limit: 3})
+  //         },
+  //         {
+  //           "type":"postback",
+  //           "title":"Get 3 products",
+  //           "payload":JSON.stringify({action: 'QR_SAVED_ITEMS', limit: 3})
+  //         },
+  //         {
+  //           "type":"postback",
+  //           "title":"Search",
+  //           "payload":JSON.stringify({action: 'QR_SEARCH', limit: 3})
+  //         }
+  //         // limit of three buttons 
+  //       ]
+  //     }
+  //   }
+  // }
+  // }
+  //callSendAPI(messageData);
+}
+
 
 function sendProductInfo(recipientId, messageText){
 
   var templateElements = [];
 
-  var products = shopify.product.list({"title": messageText});
+  var products = shopify.product.list({"title": messageText}); // title tag and description
 
+
+  //var products = shopify.collectionListing.list({"title": messageText});
+  
   products.then(function(listOfProducs) {
     listOfProducs.forEach(function(product) {
+
       var url = HOST_URL + "/product.html?id="+product.id;
+      
       templateElements.push({
         title: product.title,
         subtitle: product.tags,
@@ -294,21 +367,37 @@ function sendProductInfo(recipientId, messageText){
       });
     });
 
-
-    var messageData = {
-      recipient: {
-        id: recipientId
-      },
-      message: {
-        attachment: {
-          type: "template",
-          payload: {
-            template_type: "generic",
-            elements: templateElements
+    if(!templateElements){
+      var messageData = {
+        recipient: {
+          id: recipientId
+        },
+        message: {
+          attachment: {
+            type: "template",
+            payload: {
+              template_type: "generic",
+              text: "No product found!"
+            }
           }
         }
-      }
-    };
+      };
+    } else {
+      var messageData = {
+        recipient: {
+          id: recipientId
+        },
+        message: {
+          attachment: {
+            type: "template",
+            payload: {
+              template_type: "generic",
+              elements: templateElements
+            }
+          }
+        }
+      };
+    }
 
     callSendAPI(messageData);
   })
@@ -401,15 +490,38 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
 
   switch (requestPayload.action) {
 
-
-
-    // Flesh out QR payloads
     case 'QR_SAVED_ITEMS':
-      var messageData = {
-
+      if(!shopping_cart.users[recipientId])
+      {
+        var message = "You have no items"
+      } else {
+        var message = "You have some items"
       }
 
+      var messageData = {
+        recipient: {
+          id: recipientId
+        },
+        "message":{
+          "text": message
+        }
+      }
+      callSendAPI(messageData);
+    
     break;
+
+    case 'QR_SEARCH':
+      var messageData = {
+        recipient: {
+          id: recipientId
+        },
+        "message":{
+          "text": "Please enter a search query"
+        }
+      }
+      callSendAPI(messageData);
+      
+      break;
 
 
 
@@ -419,23 +531,12 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
             id: recipientId
           },
           "message":{
-            "text": "Please select one of the options below!",
+            "text": "Please select one of the options below to begin.",
             "quick_replies":[
-              {
-                "content_type":"text",
-                "title":"Search",
-                "payload":"QR_GET_PRODUCT_LIST"
-              },
-              {
-                "content_type":"text",
-                "title":"Trending",
-                "payload":"QR_GET_PRODUCT_LIST"
-              },
-              {
-                "content_type":"text",
-                "title":"Saved Items",
-                "payload":"QR_GET_PRODUCT_LIST"
-              }
+              textButton('Trending', 'QR_GET_PRODUCT_LIST', {limit: 3}),
+              textButton('Search', 'QR_SEARCH', {limit: 3}),
+              textButton('Saved', 'QR_SAVED_ITEMS', {limit: 3})
+
             ]
           }
         };
@@ -626,7 +727,7 @@ function callSendProfile() {
           }
       ] ,
       "get_started": {
-        "payload": JSON.stringify({action: 'QR_GET_GREETING', limit: 3})
+        "payload": JSON.stringify({action: 'QR_GET_GREETING'})
       },
       "whitelisted_domains":[
         HOST_URL
