@@ -567,7 +567,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
           }
           shopping_cart[i]['product'].splice(index, 1)
 
-          }
+          
           var messageData = {
             recipient: {
               id: recipientId
@@ -577,8 +577,6 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
             }
           }
           callSendAPI(messageData);
-
-
         break;
 
         case 'QR_SAVED_ITEMS':
@@ -644,7 +642,6 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
           console.log(shopping_cart)
         break;
     
-
     case 'QR_SEARCH':
       var messageData = {
         recipient: {
