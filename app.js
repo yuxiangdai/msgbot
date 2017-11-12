@@ -19,7 +19,9 @@ const
   express = require('express'),
   https = require('https'),
   request = require('request'),
-  Shopify = require('shopify-api-node');
+  Shopify = require('shopify-api-node'),
+  fs = require('fs'),
+  request = require('request');
 
 var app = express();
 app.set('port', process.env.PORT || 5000);
@@ -210,108 +212,144 @@ app.post('/webhook', function (req, res) {
  * Read more at https://developers.facebook.com/docs/messenger-platform/webhook-reference/message-received
  *
  */
+var download = function(uri, filename, callback){
+  request.head(uri, function(err, res, body){
+    console.log('content-type:', res.headers['content-type']);
+    console.log('content-length:', res.headers['content-length']);
+
+    request(uri).pipe(fs.createWriteStream(filename)).on('close', callback);
+  });
+};
+
 function receivedMessage(event) {
   var senderID = event.sender.id;
   var pageID = event.recipient.id;
   var timeOfMessage = event.timestamp;
   var message = event.message;
-  // var parsed = message['nlp']['entities'];
-  
- 
-
-  console.log("[receivedMessage] user (%d) page (%d) timestamp (%d) and message (%s)",
-    // senderID, pageID, timeOfMessage, JSON.stringify(message));
-    senderID, pageID, timeOfMessage, JSON.stringify(event.message));
-  
-
-  if (message.quick_reply) {
-    console.log("[receivedMessage] quick_reply.payload (%s)",
-      message.quick_reply.payload);
-    handleQuickReplyResponse(event);
-    return;
-  }
 
   var msgAttach = message.attachments;
   if (msgAttach && msgAttach.type == "image"){
     url = msgAttach.payload.url;
     console.log("image url:",url);
+    download(url, str(timeOfMessage), function(){
+      console.log('downloaded to root directory');
+    });
   }
 
-  var messageText = message.text;
-  if (messageText) {
+  if (message['nlp']) {
+      var parsed = message['nlp']['entities'];
 
-    var lcm = messageText.toLowerCase();
-    switch (lcm) {
-      // if the text matches any special keywords, handle them accordingly
-      case 'help':
-        sendHelpOptionsAsButtonTemplates(senderID);
-        break;
-      case 'reset':
-        reset(senderID);
-        break;
-      // sends info about a specific
-      // case 'info':
-      default:
-        // otherwise, just echo it back to the sender
-        var thresConf = 0.8; //threshhold_confidence
-        //code for general check for what is proposed
-        // if (parsed['____'] != null){
-        //   _____ = parsed['___'][0]['confidence'] > thresConf;
-        // }
-        //find out if greeting was proposed
-        var greet = 0;
-        if (parsed['greeting'] != null){
-          greet = parsed['greeting'][0]['confidence'] > thresConf;
-        }
+    console.log("[receivedMessage] user (%d) page (%d) timestamp (%d) and message (%s)",
+      // senderID, pageID, timeOfMessage, JSON.stringify(message));
+      senderID, pageID, timeOfMessage, JSON.stringify(event.message));
 
-        //find if instruction or question proposed
-        var instr = 0;
-        var quest = 0;
-        if (parsed['instruction'] != null){
-          instr = parsed['instruction'][0]['confidence'] > thresConf;
-        }
-        if (parsed['question'] !=null) {
-          quest = parsed['question'][0]['confidence'] > thresConf;
-        }
 
-        //console.log(parsed['instruction'][0]['confidence'])
-        var inquiry = instr || quest;
-        var productArr = [];
-        var proposal = 'initial';
-        if (greet) {
-          proposal = 'greet';
-        } else if (inquiry){
-          proposal = 'inquiry';
-        } else {
-          proposal = 'undefined';
-        }
-        switch (proposal){
-          case 'greet':
-            var arrofGreetings = ['Hi!','Hello!','Hey!'];
-            var greettosend = arrofGreetings[Math.floor(Math.random()*items.length)];
-            sendTextMessage(senderID, greettosend);
+    if (message.quick_reply) {
+      console.log("[receivedMessage] quick_reply.payload (%s)",
+        message.quick_reply.payload);
+      handleQuickReplyResponse(event);
+      return;
+    }
+
+    var messageText = message.text;
+    if (messageText) {
+
+      var lcm = messageText.toLowerCase();
+      switch (lcm) {
+        // if the text matches any special keywords, handle them accordingly
+        case 'help':
+          sendHelpOptionsAsButtonTemplates(senderID);
           break;
-          case 'inquiry':
-            if (parsed['descriptor'] != null){
-              if (parsed['descriptor'][0]['confidence'] > thresConf) {
-                var descriptor = parsed['descriptor'][0]['value'];
-                var descripArr = descriptor.split(' ');
-                productArr = descripArr;
-              }
-            }
-            if (parsed['product_type'] != null){
-              if (parsed['product_type'][0]['confidence'] > thresConf) {
-                var prod_type = parsed['product_type'][0]['value'];
-                productArr.push(prod_type);
-              }
-            }
-            var product = [descriptor, prod_type];
-            sendProductInfo(senderID, productArr, lcm);
+        case 'reset':
+          reset(senderID);
           break;
-          default:
-            sendProductInfo(senderID, [messageText], lcm);
+        // sends info about a specific
+        // case 'info':
+        default:
+          // otherwise, just echo it back to the sender
+          var thresConf = 0.8; //threshhold_confidence
+          //code for general check for what is proposed
+          // if (parsed['____'] != null){
+          //   _____ = parsed['___'][0]['confidence'] > thresConf;
+          // }
+          //find out if greeting was proposed
+          var greet = 0;
+          if (parsed['greeting'] != null){
+            greet = parsed['greeting'][0]['confidence'] > thresConf;
+          }
+          //find out if bye was proposed
+          var bye = 0;
+          if (parsed['bye'] != null){
+            bye = parsed['bye'][0]['confidence'] > thresConf;
+          }
+          //find out if thanks was proposed
+          var thanks = 0;
+          if (parsed['thanks'] != null){
+            thanks = parsed['thanks'][0]['confidence'] > thresConf;
+          }
+          //find if instruction or question proposed
+          var instr = 0;
+          var quest = 0;
+          if (parsed['instruction'] != null){
+            instr = parsed['instruction'][0]['confidence'] > thresConf;
+          }
+          if (parsed['question'] !=null) {
+            quest = parsed['question'][0]['confidence'] > thresConf;
+          }
+
+          //console.log(parsed['instruction'][0]['confidence'])
+          var inquiry = instr || quest;
+          var productArr = [];
+          var proposal = 'initial';
+          if (greet) {
+            proposal = 'greet';
+          } else if (bye){
+            proposal = 'bye';
+          } else if (thanks){
+            proposal = 'thanks';
+          } else if (inquiry){
+            proposal = 'inquiry';
+          } else {
+            proposal = 'undefined';
+          }
+          switch (proposal){
+            case 'greet':
+              var arrofGreetings = ['Hi!','Hello!','Hey!'];
+              var greettosend = arrofGreetings[Math.floor(Math.random()*items.length)];
+              sendTextMessage(senderID, greettosend);
+            break;
+            case 'bye':
+              var arrofByes = ['See you later!','Goodbye!','Bye!'];
+              var byetosend = arrofByes[Math.floor(Math.random()*arrofByes.length)];
+              sendTextMessage(senderID, byetosend);
+            break;
+            case 'thanks':
+              var arrThanks = ['Anything else I can help with? :)','Happy to help!','No problem!!'];
+              var thankstosend = arrThanks[Math.floor(Math.random()*arrThanks.length)];
+              sendTextMessage(senderID, thankstosend);
+            break;
+            case 'inquiry':
+              if (parsed['descriptor'] != null){
+                if (parsed['descriptor'][0]['confidence'] > thresConf) {
+                  var descriptor = parsed['descriptor'][0]['value'];
+                  var descripArr = descriptor.split(' ');
+                  productArr = descripArr;
+                }
+              }
+              if (parsed['product_type'] != null){
+                if (parsed['product_type'][0]['confidence'] > thresConf) {
+                  var prod_type = parsed['product_type'][0]['value'];
+                  productArr.push(prod_type);
+                }
+              }
+              var product = [descriptor, prod_type];
+              sendProductInfo(senderID, productArr, lcm);
+            break;
+            default:
+              sendProductInfo(senderID, [messageText], lcm);
+          }
+          //sendTextMessage(senderID, messageText);
         }
-        //sendTextMessage(senderID, messageText);
     }
   }
 }
@@ -353,7 +391,7 @@ function sendProductInfo(recipientId, product_arr, lcm){
   var descriptors = product_arr[0]
   var product_type = product_arr[product_arr.length - 1];
   console.log(product_arr)
-  
+
   var sectionButton = function(title, action, options) {
     var payload = options | {};
     payload = Object.assign(options, {action: action});
@@ -397,7 +435,7 @@ function sendProductInfo(recipientId, product_arr, lcm){
         //}
       }
       });
-  
+
       if(templateElements.length == 0){
         var messageData = {
           recipient: {
@@ -423,7 +461,7 @@ function sendProductInfo(recipientId, product_arr, lcm){
           }
         };
       }
-  
+
       callSendAPI(messageData);
 
       });
@@ -530,7 +568,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
 
         sh_product.then(function(product){if (contains(shopping_cart, recipientId) === false){
           shopping_cart.push({'id': recipientID_str, 'product': [product]});
-    
+
         }
         else{
           var i = contains(shopping_cart, recipientId);
@@ -543,9 +581,9 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
         console.log(shopping_cart[0]['product'].tags)
       })
         break;
-    
+
         case 'QR_SAVED_ITEMS':
-        
+
           if(contains(shopping_cart, recipientId) === false)
           {
             var message = "You have no items"
@@ -586,7 +624,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
                   ]
                 });
               });
-        
+
               var messageData = {
                 recipient: {
                   id: recipientId
@@ -607,7 +645,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
 
           console.log(shopping_cart)
         break;
-    
+
 
     case 'QR_SEARCH':
       var messageData = {
@@ -659,7 +697,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
           id: recipientId
         },
         message: {
-          
+
           attachment: {
             type: "template",
             payload: {
