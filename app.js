@@ -1,3 +1,5 @@
+
+
 /*
  * Copyright 2016-present, Facebook, Inc.
  * All rights reserved.
@@ -27,9 +29,9 @@ app.use(express.static('public'));
 
 var nlp_helper = require('./nlp_helper');
 
-var shopping_cart = {
-  users: {}
-};
+var shopping_cart = [];
+
+//{id: recipient, product [{},{}] }
 
 /*
  * Open config/default.json and set your config values before running this code.
@@ -341,9 +343,17 @@ function sendProductInfo(recipientId, product_arr, lcm){
   var productIDList = [];
   var descriptors = product_arr.slice(0, product_arr.length - 1)
   var product_type = product_arr[product_arr.length - 1];
-
+  console.log(product_arr)
   
-
+  var sectionButton = function(title, action, options) {
+    var payload = options | {};
+    payload = Object.assign(options, {action: action});
+    return {
+      type: 'postback',
+      title: title,
+      payload: JSON.stringify(payload)
+    };
+  }
 
     var descriptor = product_arr[product_arr.length - 1];
     var newProductList = [];
@@ -394,7 +404,7 @@ function sendProductInfo(recipientId, product_arr, lcm){
               type: "template",
               payload: {
                 template_type: "generic",
-                elements: templateElements
+                elements: templateElements.slice(0, 10)
               }
             }
           }
@@ -463,6 +473,16 @@ function handleQuickReplyResponse(event) {
  * swipe from side to side to see it
  *
  */
+
+function contains(list, recipientID){
+  for(var i = 0; i < list.length; i++){
+    if (list[i].id === recipientID){
+      return i;
+    }
+  }
+  return false
+}
+
 function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature) {
   console.log("[respondToHelpRequestWithTemplates] handling help request for %s",
     requestForHelpOnFeature);
@@ -491,41 +511,89 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
   }
 
   switch (requestPayload.action) {
-
     case 'QR_SAVE':
+        var recipientID_str = recipientId.toString();
+        var sh_product = shopify.product.get(requestPayload.id);
 
-    var recipientID_str = recipientID.toString();
-    var sh_product = shopify.product.get(requestPayload.id);
-    if (contains(shopping_cart, recipientID) === false){
-
-      shopping_cart.push({'id': recipientID_str, 'product': {sh_product}});
-
-    }
-    else{
-      var i = contains(shopping_cart, recipientID);
-      shopping_cart[i]['product'].push(sh_product);
-    }
-    break;
-
-    case 'QR_SAVED_ITEMS':
-      if(!shopping_cart.users[recipientId])
-      {
-        var message = "You have no items"
-      } else {
-        var message = "You have some items"
-      }
-
-      var messageData = {
-        recipient: {
-          id: recipientId
-        },
-        "message":{
-          "text": message
+        sh_product.then(function(){if (contains(shopping_cart, recipientId) === false){
+          shopping_cart.push({'id': recipientID_str, 'product': [sh_product]});
+    
         }
-      }
-      callSendAPI(messageData);
+        else{
+          var i = contains(shopping_cart, recipientId);
+          shopping_cart[i]['product'].push(sh_product);
+        }
 
-    break;
+        console.log(shopping_cart[0]['product'].id)
+        console.log(shopping_cart[0]['product'].title)
+        console.log(shopping_cart[0]['product'].tags)
+      })
+        break;
+    
+        case 'QR_SAVED_ITEMS':
+        
+          if(contains(shopping_cart, recipientId) === false)
+          {
+            var message = "You have no items"
+            var messageData = {
+              recipient: {
+                id: recipientId
+              },
+              "message":{
+                "text": message
+              }
+            }
+            callSendAPI(messageData);
+          } else {
+            var  i = contains(shopping_cart, recipientId);
+            console.log(i)
+            shopping_cart[i]['product'].forEach(function(product) {
+                var url = HOST_URL + "/product.html?id="+product.id;
+
+
+                console.log(product.id)
+                console.log(product.title)
+                console.log(product.tags)
+
+                templateElements.push({
+                  title: product.title,
+                  subtitle: product.tags,
+                  //image_url: product.image.src,
+                  buttons:[
+                    {
+                      "type":"web_url",
+                      "url": url,
+                      "title":"Read description",
+                      "webview_height_ratio": "compact",
+                      "messenger_extensions": "true"
+                    },
+                    sectionButton('Get options', 'QR_GET_PRODUCT_OPTIONS', {id: product.id}),
+                    sectionButton('Save this item', 'QR_SAVE', {id: product.id})
+                  ]
+                });
+              });
+        
+              var messageData = {
+                recipient: {
+                  id: recipientId
+                },
+                message: {
+                  attachment: {
+                    type: "template",
+                    payload: {
+                      template_type: "generic",
+                      elements: templateElements.slice(0, 10)
+                    }
+                  }
+                }
+              };
+              callSendAPI(messageData);
+
+          }
+
+          console.log(shopping_cart)
+        break;
+    
 
     case 'QR_SEARCH':
       var messageData = {
@@ -540,7 +608,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
     break;
 
     case 'QR_GET_BEST':
-    var products = shopify.product.list({ limit: requestPayload.limit, order: "BEST_SELLING"});
+    var products = shopify.product.list({ limit: requestPayload.limit});
     products.then(function(listOfProducs) {
       listOfProducs.forEach(function(product) {
         var url = HOST_URL + "/product.html?id="+product.id;
@@ -566,13 +634,23 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
         recipient: {
           id: recipientId
         },
+        "message":{
+          "text": "Showing the top ten best-sellers:"
+        }
+      }
+      callSendAPI(messageData);
+
+      var messageData = {
+        recipient: {
+          id: recipientId
+        },
         message: {
-          "text": "These are the top 10 best selling products",
+          
           attachment: {
             type: "template",
             payload: {
               template_type: "generic",
-              elements: templateElements
+              elements: templateElements.slice(0, 10)
             }
           }
         }
@@ -683,16 +761,6 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
           callSendAPI(messageData);
         });
       break;
-<<<<<<< HEAD
-
-      case 'QR_SAVE':
-
-
-
-      break;
-
-=======
->>>>>>> b523209f1c8638116529958291be1f251de7297e
   }
 
 }
