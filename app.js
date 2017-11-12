@@ -27,9 +27,10 @@ app.use(express.static('public'));
 
 var nlp_helper = require('./nlp_helper');
 
-var shopping_cart = {
-  users: {}
-};
+var shopping_cart = [];
+
+//in users, there should be recipient id, and a product obejct
+//recipientID: {(list of products) }
 
 /*
  * Open config/default.json and set your config values before running this code.
@@ -586,7 +587,6 @@ function sendProductInfo(recipientId, product_arr){
   //})
 }
 
-
 /*
  * Send a message with buttons.
  *
@@ -643,6 +643,16 @@ function handleQuickReplyResponse(event) {
  * swipe from side to side to see it
  *
  */
+
+function contains(list, recipientID){
+  for(i = 0; i < len(list); i++){
+    if (list[i].id === recipientID){
+      return i
+    }
+  }
+  return false
+}
+
 function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature) {
   console.log("[respondToHelpRequestWithTemplates] handling help request for %s",
     requestForHelpOnFeature);
@@ -672,24 +682,76 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
 
   switch (requestPayload.action) {
 
+    case 'QR_SAVE':
+
+    var recipientID_str = recipientID.toString();
+    var sh_product = shopify.product.get(requestPayload.id);
+    if (contains(shopping_cart, recipientID) === false){
+
+      shopping_cart.push({'id': recipientID_str, 'product': {sh_product}});
+
+    }
+    else{
+      var i = contains(shopping_cart, recipientID);
+      shopping_cart[i]['product'].push(sh_product);
+    }
+    break;
+
     case 'QR_SAVED_ITEMS':
-      if(!shopping_cart.users[recipientId])
+    
+      if(contains(shopping_cart, recipientID) === false)
       {
         var message = "You have no items"
-      } else {
-        var message = "You have some items"
-      }
-
-      var messageData = {
-        recipient: {
-          id: recipientId
-        },
-        "message":{
-          "text": message
+        var messageData = {
+          recipient: {
+            id: recipientId
+          },
+          "message":{
+            "text": message
+          }
         }
+        callSendAPI(messageData);
+      } else {
+        var  i = contains(shopping_cart, recipientID);
+        shopping_cart[i]['product'].then(function(listOfProducs) {
+          listOfProducs.forEach(function(product) {
+            var url = HOST_URL + "/product.html?id="+product.id;
+            templateElements.push({
+              title: product.title,
+              subtitle: product.tags,
+              image_url: product.image.src,
+              buttons:[
+                {
+                  "type":"web_url",
+                  "url": url,
+                  "title":"Read description",
+                  "webview_height_ratio": "compact",
+                  "messenger_extensions": "true"
+                },
+                sectionButton('Get options', 'QR_GET_PRODUCT_OPTIONS', {id: product.id}),
+                sectionButton('Save this item', 'QR_SAVE', {id: product.id})
+              ]
+            });
+          });
+    
+          var messageData = {
+            recipient: {
+              id: recipientId
+            },
+            message: {
+              "text": "These are the top 10 best selling products",
+              attachment: {
+                type: "template",
+                payload: {
+                  template_type: "generic",
+                  elements: templateElements
+                }
+              }
+            }
+          };
+          callSendAPI(messageData);
+        });
       }
-      callSendAPI(messageData);
-
     break;
 
     case 'QR_SEARCH':
@@ -848,15 +910,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
           callSendAPI(messageData);
         });
       break;
-
-      case 'QR_SAVE':
-
-
-
-      break;
-
   }
-
 }
 
 /*
