@@ -227,7 +227,7 @@ function receivedMessage(event) {
   var message = event.message;
 
   var msgAttach = message.attachments;
-  console.log(msgAttach[0].payload.url);
+ 
   if (msgAttach){
     var url = msgAttach[0].payload.url;
     console.log("image url:", url);
@@ -274,6 +274,8 @@ function receivedMessage(event) {
           // }
           //find out if greeting was proposed
           var greet = 0;
+
+          console.log(parsed.greeting)
           if (parsed['greeting'] != null){
             greet = parsed['greeting'][0]['confidence'] > thresConf;
           }
@@ -346,9 +348,10 @@ function receivedMessage(event) {
               sendProductInfo(senderID, productArr, lcm);
             break;
             default:
-              sendProductInfo(senderID, [messageText], lcm);
+              //sendProductInfo(senderID, [messageText], lcm);
+              sendTextMessage(senderID, messageText);
           }
-          //sendTextMessage(senderID, messageText);
+          
         }
     }
   }
@@ -903,13 +906,16 @@ function receivedPostback(event) {
  * Send a text message using the Send API.
  *
  */
+
+
+
 function sendTextMessage(recipientId, messageText) {
   var messageData = {
     recipient: {
       id: recipientId
     },
     message: {
-      text: messageText, // utf-8, 640-character max
+      text: "Sorry, I don't understand '" + messageText + "'", // utf-8, 640-character max
       metadata: "DEVELOPER_DEFINED_METADATA"
     }
   };
