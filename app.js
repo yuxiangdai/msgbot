@@ -247,31 +247,33 @@ function receivedMessage(event) {
         var instr = 0;
         var quest = 0;
         if (parsed['instruction'] != null){
-          instr = parsed['instruction']['confidence'] > thresConf;
+          instr = parsed['instruction'][0]['confidence'] > thresConf;
         }
         if (parsed['question'] !=null) {
-          quest = parsed['question']['confidence'] > thresConf;
+          quest = parsed['question'][0]['confidence'] > thresConf;
         }
+
+        console.log(parsed['instruction'][0]['confidence'])
         var inquiry = instr || quest;
 
         if (inquiry) {
           var prod_type = '';
           var descriptor =  '';
           if (parsed['product_type'] != null){
-            if (parsed['product_type']['confidence'] > thresConf) {
-              var prod_type = parsed['product_type']['value'];
+            if (parsed['product_type'][0]['confidence'] > thresConf) {
+              var prod_type = parsed['product_type'][0]['value'];
             }
           }
           if (parsed['descriptor'] != null){
-            if (parsed['descriptor']['confidence'] > thresConf) {
-              var descriptor = parsed['descriptor']['value'];
+            if (parsed['descriptor'][0]['confidence'] > thresConf) {
+              var descriptor = parsed['descriptor'][0]['value'];
             }
           }
           var product = [prod_type, descriptor];
           sendProductInfo(senderID, product);
 
         } else {
-          sendProductInfo(senderID, messageText);
+          sendProductInfo(senderID, [messageText," "]);
         }
         //sendTextMessage(senderID, messageText);
     }
@@ -345,11 +347,14 @@ function reset(recipientId){
 }
 
 
-function sendProductInfo(recipientId, messageText){
-
+function sendProductInfo(recipientId, product_arr){
+  
   var templateElements = [];
-
-  var products = shopify.product.list({"title": messageText}); // title tag and description
+  var product_type = product_arr[0];
+  var descriptor = product_arr[1];
+  console.log(product_type)
+  console.log(descriptor)
+  var products = shopify.product.list({"title": product_type}); // title tag and description
 
 
   //var products = shopify.collectionListing.list({"title": messageText});
