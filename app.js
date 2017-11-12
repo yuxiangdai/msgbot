@@ -243,16 +243,22 @@ function receivedMessage(event) {
       default:
         // otherwise, just echo it back to the sender
         var thresConf = 0.8; //threshhold_confidence
-        //code for general check for what is proposed
-        // if (parsed['____'] != null){
-        //   _____ = parsed['___'][0]['confidence'] > thresConf;
-        // }
+
         //find out if greeting was proposed
         var greet = 0;
         if (parsed['greeting'] != null){
           greet = parsed['greeting'][0]['confidence'] > thresConf;
         }
-
+        //find out if bye was proposed
+        var bye = 0;
+        if (parsed['bye'] != null){
+          bye = parsed['bye'][0]['confidence'] > thresConf;
+        }
+        //find out if thanks was proposed
+        var thanks = 0;
+        if (parsed['thanks'] != null){
+          thanks = parsed['thanks'][0]['confidence'] > thresConf;
+        }
         //find if instruction or question proposed
         var instr = 0;
         var quest = 0;
@@ -269,6 +275,10 @@ function receivedMessage(event) {
         var proposal = 'initial';
         if (greet) {
           proposal = 'greet';
+        } else if (bye){
+          proposal = 'bye';
+        } else if (thanks){
+          proposal = 'thanks';
         } else if (inquiry){
           proposal = 'inquiry';
         } else {
@@ -277,8 +287,18 @@ function receivedMessage(event) {
         switch (proposal){
           case 'greet':
             var arrofGreetings = ['Hi!','Hello!','Hey!'];
-            var greettosend = arrofGreetings[Math.floor(Math.random()*items.length)];
+            var greettosend = arrofGreetings[Math.floor(Math.random()*arrofGreetings.length)];
             sendTextMessage(senderID, greettosend);
+          break;
+          case 'bye':
+            var arrofByes = ['See you later!','Goodbye!','Bye!'];
+            var byetosend = arrofByes[Math.floor(Math.random()*arrofByes.length)];
+            sendTextMessage(senderID, byetosend);
+          break;
+          case 'thanks':
+            var arrThanks = ['Anything else I can help with? :)','Happy to help!','No problem!!'];
+            var thankstosend = arrThanks[Math.floor(Math.random()*arrThanks.length)];
+            sendTextMessage(senderID, thankstosend);
           break;
           case 'inquiry':
             if (parsed['descriptor'] != null){
