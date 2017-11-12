@@ -239,7 +239,7 @@ function receivedMessage(event) {
       case 'reset':
         reset(senderID);
         break;
-      // sends info about a specific   
+      // sends info about a specific
       // case 'info':
       default:
         // otherwise, just echo it back to the sender
@@ -253,27 +253,27 @@ function receivedMessage(event) {
           quest = parsed['question'][0]['confidence'] > thresConf;
         }
 
-        //console.log(parsed['instruction'][0]['confidence'])
+        console.log(parsed['instruction'][0]['confidence'])
         var inquiry = instr || quest;
-
+        var productArr = []
         if (inquiry) {
-          var prod_type = '';
-          var descriptor =  '';
           if (parsed['product_type'] != null){
             if (parsed['product_type'][0]['confidence'] > thresConf) {
               var prod_type = parsed['product_type'][0]['value'];
+              productArr.push(prod_type);
             }
           }
           if (parsed['descriptor'] != null){
             if (parsed['descriptor'][0]['confidence'] > thresConf) {
               var descriptor = parsed['descriptor'][0]['value'];
+              var descripArr = descriptor.split(' ');
+              productArr.concat(descripArr);
+
             }
           }
-          var product = [prod_type, descriptor];
-          sendProductInfo(senderID, product, lcm);
-
+          sendProductInfo(senderID, productArr);
         } else {
-          sendProductInfo(senderID, [messageText, " "], lcm);
+          sendProductInfo(senderID, [messageText," "]);
         }
         //sendTextMessage(senderID, messageText);
     }
@@ -309,65 +309,78 @@ function reset(recipientId){
     }
   };
   callSendAPI(messageData);
+
+  // var messageData = {
+  //   recipient: {
+  //     id: recipientId
+  //   },
+
+  // message:{
+  //   attachment:{
+  //     type:"template",
+  //     payload:{
+  //       template_type:"button",
+  //       text:"Click the button before to get a list of 3 of our products.",
+  //       buttons:[
+  //         {
+  //           "type":"postback",
+  //           "title":"Get 3 products",
+  //           "payload":JSON.stringify({action: 'QR_GET_PRODUCT_LIST', limit: 3})
+  //         },
+  //         {
+  //           "type":"postback",
+  //           "title":"Get 3 products",
+  //           "payload":JSON.stringify({action: 'QR_SAVED_ITEMS', limit: 3})
+  //         },
+  //         {
+  //           "type":"postback",
+  //           "title":"Search",
+  //           "payload":JSON.stringify({action: 'QR_SEARCH', limit: 3})
+  //         }
+  //         // limit of three buttons
+  //       ]
+  //     }
+  //   }
+  // }
+  // }
+  //callSendAPI(messageData);
 }
 
 
-function sendProductInfo(recipientId, product_arr, lcm){
-
-  // filter based on descriptor as well
-
-  // search for first index, get the list 
-  // serach for second index, 
-
-   // title || desc || tags
-
-  // if yellow && pants 
-    // if yellow
-    // if pants
-
-
-    // cut plurals "e.g. hoodies vs hoodie"
-
-
+function sendProductInfo(recipientId, product_arr){
 
   var templateElements = [];
-  var productList = [];
-  var productIDList = [];
   var product_type = product_arr[0];
   var descriptor = product_arr[1];
   console.log(product_type)
   console.log(descriptor)
+  var products = shopify.product.list({"title": product_type}); // title tag and description
 
 
-  var product = shopify.product.list({"title": product_type}); // title tag and description
-  var productDescSearch = shopify.product.list({"body_html": product_type}); 
-  var productTagSearch = shopify.product.list({"tags": product_type}); 
+  //var products = shopify.collectionListing.list({"title": messageText});
+  if(!products){
 
-  
+  }
 
-
-
-  product.then(function(listOfProducs) {
+  products.then(function(listOfProducs) {
     listOfProducs.forEach(function(product) {
-        console.log(product)
-        productList.push(product)
-        productIDList.push(product.id)
+
         var url = HOST_URL + "/product.html?id="+product.id;
-        
+
         templateElements.push({
           title: product.title,
           subtitle: product.tags,
           image_url: product.image.src
         });
     });
-      // put inside then function
+
     if(templateElements.length == 0){
       var messageData = {
         recipient: {
           id: recipientId
         },
         message: {
-          text: "I didn't find anything related to '" + lcm + "'"
+          text: "No items found! Try again."
         }
       };
     } else {
@@ -380,7 +393,7 @@ function sendProductInfo(recipientId, product_arr, lcm){
             type: "template",
             payload: {
               template_type: "generic",
-              elements: templateElements.slice(0, 10)
+              elements: templateElements
             }
           }
         }
@@ -388,25 +401,7 @@ function sendProductInfo(recipientId, product_arr, lcm){
     }
 
     callSendAPI(messageData);
-
-    })
-
-  productDescSearch.then(function(listOfProducs) {
-    listOfProducs.forEach(function(product) {
-        productList.push(product)
-        productIDList.push(product.id)
-    });
   })
-
-  productTagSearch.then(function(listOfProducs) {
-    listOfProducs.forEach(function(product) {
-        productList.push(product)
-    });
-  })
-
-
-
-
 }
 
 
@@ -501,7 +496,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
       {
         var message = "You have no items"
       } else {
-        var message = "You have items in your cart"
+        var message = "You have some items"
       }
 
       var messageData = {
@@ -513,7 +508,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
         }
       }
       callSendAPI(messageData);
-    
+
     break;
 
     case 'QR_SEARCH':
@@ -526,7 +521,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
         }
       }
       callSendAPI(messageData);
-      
+
       break;
 
 
