@@ -80,7 +80,6 @@ const shopify = new Shopify({
   password: SHOPIFY_API_PASSWORD
 });
 
-
 /*
  * Verify that the callback came from Facebook. Using the App Secret from
  * your App Dashboard, we can verify the signature that is sent with each
@@ -283,9 +282,11 @@ function receivedMessage(event) {
               productArr.push(prod_type);
             }
           }
-          sendProductInfo(senderID, productArr);
+          var product = [descriptor, prod_type];
+          sendProductInfo(senderID, product, lcm);
+
         } else {
-          sendProductInfo(senderID, [messageText," "]);
+          sendProductInfo(senderID, [" ", messageText], lcm);
         }
         //sendTextMessage(senderID, messageText);
     }
@@ -294,7 +295,6 @@ function receivedMessage(event) {
 
 
 function reset(recipientId){
-
 
   var textButton = function(title, action, options) {
     var payload = options | {};
@@ -313,7 +313,7 @@ function reset(recipientId){
     "message":{
       "text": "Please select one of the options below to begin.",
       "quick_replies":[
-        textButton('Trending', 'QR_GET_PRODUCT_LIST', {limit: 3}),
+        textButton('Trending', 'QR_GET_BEST', {limit: 10}),
         textButton('Search', 'QR_SEARCH', {limit: 3}),
         textButton('Saved', 'QR_SAVED_ITEMS', {limit: 3})
 
@@ -358,62 +358,197 @@ function reset(recipientId){
   //callSendAPI(messageData);
 }
 
-
 function sendProductInfo(recipientId, product_arr){
-
   var templateElements = [];
-  var product_type = product_arr[0];
-  var descriptor = product_arr[1];
+  var productList = [];
+  var productIDList = [];
+  var descriptors = product_arr.slice(0, product_arr.length - 1)
+  var product_type = product_arr[product_arr.length - 1];
   console.log(product_type)
-  console.log(descriptor)
-  var products = shopify.product.list({"title": product_type}); // title tag and description
+  console.log(descriptors)
 
+  for(var i = 0; i <= product_arr.length - 1; i++){
 
-  //var products = shopify.collectionListing.list({"title": messageText});
-  if(!products){
+    var descriptor = product_arr[i];
+    var newProductList = [];
+    var newProductIDList = [];
 
+    var product = shopify.product.list({"title": descriptor}); // title tag and description
+    var productTagSearch = shopify.product.list({"tags": descriptor});
+    var productDescSearch = shopify.product.list({"body_html": descriptor}); 
+  
+    product.then(function(listOfProducs) {
+      listOfProducs.forEach(function(product) {      
+        newProductList.push(product)
+        newProductIDList.push(product.id) 
+      });
+    })
+
+    productTagSearch.then(function(listOfProducs) {
+      listOfProducs.forEach(function(product) {
+          // check if ID not yet in list
+          if(newProductIDList.indexOf(product.id) < 0){
+            newProductList.push(product)
+            newProductIDList.push(product.id)
+          } 
+      });
+    })
+
+    productDescSearch.then(function(listOfProducs) {
+      listOfProducs.forEach(function(product) {
+          // check if ID not yet in list
+          if(newProductIDList.indexOf(product.id) < 0){
+            newProductList.push(product)
+            newProductIDList.push(product.id)
+          } 
+      });
+
+      if(i == 0){
+        productIDList = newProductIDList;
+        productList = newProductList;
+      } 
+      else if(i == product_arr.length - 1){
+        productList.forEach(function(product){
+          var url = HOST_URL + "/product.html?id="+product.id;
+          
+          templateElements.push({
+            title: product.title,
+            subtitle: product.tags,
+            image_url: product.image.src,
+            buttons:[
+              {
+                "type":"web_url",
+                "url": url,
+                "title":"Read description",
+                "webview_height_ratio": "compact",
+                "messenger_extensions": "true"
+              },
+              sectionButton('Get options', 'QR_GET_PRODUCT_OPTIONS', {id: product.id}),
+              sectionButton('Save this item', 'QR_SAVE', {id: product.id})
+            ]
+          });
+        });
+      
+        if(templateElements.length == 0){
+          var messageData = {
+            recipient: {
+              id: recipientId
+            },
+            message: {
+              text: "I didn't find anything related to '" + lcm + "'"
+            }
+          };
+        } else {
+          var messageData = {
+            recipient: {
+              id: recipientId
+            },
+            message: {
+              attachment: {
+                type: "template",
+                payload: {
+                  template_type: "generic",
+                  elements: templateElements.slice(0, 10)
+                }
+              }
+            }
+          };
+        }
+    
+        callSendAPI(messageData);
+      }
+      
+      else {
+        productIDList.forEach(function(productID){
+          if(newProductIDList.indexOf(productID) >= 0){
+
+          } else {
+            var i = productIDList.indexOf(productID);
+            if(i != -1) {
+              productIDList.splice(i, 1);
+              productList.splice(i, 1);
+            }
+            
+          }
+        })
+      }
+    })
   }
 
-  products.then(function(listOfProducs) {
-    listOfProducs.forEach(function(product) {
 
-        var url = HOST_URL + "/product.html?id="+product.id;
+  
+  // var product = shopify.product.list({"title": product_type}); // title tag and description
+  // var productTagSearch = shopify.product.list({"tags": product_type});
+  // var productDescSearch = shopify.product.list({"body_html": product_type}); 
 
-        templateElements.push({
-          title: product.title,
-          subtitle: product.tags,
-          image_url: product.image.src
-        });
-    });
+  // var newProductList = [];
+  // var newProductIDList = [];
 
-    if(templateElements.length == 0){
-      var messageData = {
-        recipient: {
-          id: recipientId
-        },
-        message: {
-          text: "No items found! Try again."
-        }
-      };
-    } else {
-      var messageData = {
-        recipient: {
-          id: recipientId
-        },
-        message: {
-          attachment: {
-            type: "template",
-            payload: {
-              template_type: "generic",
-              elements: templateElements
-            }
-          }
-        }
-      };
-    }
 
-    callSendAPI(messageData);
-  })
+  // product.then(function(listOfProducs) {
+  //   listOfProducs.forEach(function(product) {      
+  //     newProductList.push(product)
+  //     newProductIDList.push(product.id) 
+  //   });
+  // })
+
+  // productTagSearch.then(function(listOfProducs) {
+  //   listOfProducs.forEach(function(product) {
+        
+  //       if(newProductIDList.indexOf(product.id) < 0){
+  //         newProductList.push(product)
+  //         newProductIDList.push(product.id)
+  //       } 
+  //   });
+  // })
+
+  // productDescSearch.then(function(listOfProducs) {
+  //   listOfProducs.forEach(function(product) {
+  //     if(productIDList.indexOf(product.id) < 0 && productList.length <= 10){
+  //       productList.push(product)
+  //       productIDList.push(product.id)
+  //     } 
+  //   });
+
+
+  //   productList.forEach(function(product){
+  //     var url = HOST_URL + "/product.html?id="+product.id;
+      
+  //     templateElements.push({
+  //       title: product.title,
+  //       subtitle: product.tags,
+  //       image_url: product.image.src
+  //     });
+  //   });
+  
+  //   if(templateElements.length == 0){
+  //     var messageData = {
+  //       recipient: {
+  //         id: recipientId
+  //       },
+  //       message: {
+  //         text: "I didn't find anything related to '" + lcm + "'"
+  //       }
+  //     };
+  //   } else {
+  //     var messageData = {
+  //       recipient: {
+  //         id: recipientId
+  //       },
+  //       message: {
+  //         attachment: {
+  //           type: "template",
+  //           payload: {
+  //             template_type: "generic",
+  //             elements: templateElements.slice(0, 10)
+  //           }
+  //         }
+  //       }
+  //     };
+  //   }
+
+  //   callSendAPI(messageData);
+  //})
 }
 
 
@@ -465,7 +600,6 @@ function handleQuickReplyResponse(event) {
 
   // use branched conversation with one interaction per feature (each of which contains a variable number of content pieces)
   respondToHelpRequestWithTemplates(senderID, quickReplyPayload);
-
 }
 
 /*
@@ -533,10 +667,49 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
         }
       }
       callSendAPI(messageData);
+    break;
 
-      break;
+    case 'QR_GET_BEST':
+    var products = shopify.product.list({ limit: requestPayload.limit, order: "BEST_SELLING"});
+    products.then(function(listOfProducs) {
+      listOfProducs.forEach(function(product) {
+        var url = HOST_URL + "/product.html?id="+product.id;
+        templateElements.push({
+          title: product.title,
+          subtitle: product.tags,
+          image_url: product.image.src,
+          buttons:[
+            {
+              "type":"web_url",
+              "url": url,
+              "title":"Read description",
+              "webview_height_ratio": "compact",
+              "messenger_extensions": "true"
+            },
+            sectionButton('Get options', 'QR_GET_PRODUCT_OPTIONS', {id: product.id}),
+            sectionButton('Save this item', 'QR_SAVE', {id: product.id})
+          ]
+        });
+      });
 
-
+      var messageData = {
+        recipient: {
+          id: recipientId
+        },
+        message: {
+          "text": "These are the top 10 best selling products",
+          attachment: {
+            type: "template",
+            payload: {
+              template_type: "generic",
+              elements: templateElements
+            }
+          }
+        }
+      };
+      callSendAPI(messageData);
+    });
+    break;
 
     case 'QR_GET_GREETING':
         var messageData = {
@@ -546,7 +719,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
           "message":{
             "text": "Please select one of the options below to begin.",
             "quick_replies":[
-              textButton('Trending', 'QR_GET_PRODUCT_LIST', {limit: 3}),
+              textButton('Trending', 'QR_GET_BEST', {limit: 3}),
               textButton('Search', 'QR_SEARCH', {limit: 3}),
               textButton('Saved', 'QR_SAVED_ITEMS', {limit: 3})
 
@@ -579,7 +752,6 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
           });
         });
 
-
         var messageData = {
           recipient: {
             id: recipientId
@@ -594,11 +766,8 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
             }
           }
         };
-
         callSendAPI(messageData);
-
       });
-
       break;
 
     case 'QR_GET_PRODUCT_OPTIONS':
@@ -621,10 +790,36 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
         };
         callSendAPI(messageData);
       });
+      break;
 
+      case 'QR_GET_PRICE':
+        var sh_product = shopify.product.get(requestPayload.id);
+        sh_product.then(function(product) {
+          var options = '';
+          product.options.map(function(option) {
+            options = options + option.name + ': ' + option.values.join(',') + "\n";
+          });
+          var messageData = {
+            recipient: {
+              id: recipientId
+            },
+            message: {
+              text: options.substring(0, 640),
+              quick_replies: [
+                textButton('Get 3 products', 'QR_GET_PRODUCT_LIST', {limit: 3})
+              ]
+            },
+          };
+          callSendAPI(messageData);
+        });
+      break;
 
+      case 'QR_SAVE':
+        
+        
 
       break;
+
   }
 
 }
