@@ -388,7 +388,7 @@ function sendProductInfo(recipientId, product_arr, lcm){
   var templateElements = [];
   var productList = [];
   var productIDList = [];
-  var descriptors = product_arr[0]
+  var description = product_arr[0]
   var product_type = product_arr[product_arr.length - 1];
   console.log(product_arr)
 
@@ -414,8 +414,11 @@ function sendProductInfo(recipientId, product_arr, lcm){
 
           var url = HOST_URL + "/product.html?id="+product.id;
 
-          if(descriptors != null){
-          //if(product.title.includes(descriptors)){
+          if(description != null){
+            console.log(product.title)
+            console.log(description)
+            console.log(product.title.toLowerCase().includes(description))
+            if(product.title.toLowerCase().includes(description)){
           templateElements.push({
             title: product.title,
             subtitle: product.tags,
@@ -432,7 +435,7 @@ function sendProductInfo(recipientId, product_arr, lcm){
               sectionButton('Save this item', 'QR_SAVE', {id: product.id})
             ]
           })
-        //}
+        }
       }
       });
 
@@ -580,6 +583,38 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
         console.log(shopping_cart[0]['product'].title)
         console.log(shopping_cart[0]['product'].tags)
       })
+        var messageData = {
+        recipient: {
+          id: recipientId
+        },
+        "message":{
+          "text": "Saved Item!"
+        }
+      }
+      callSendAPI(messageData);
+        break;
+
+        case 'QR_DEL':
+          var  i = contains(shopping_cart, recipientId);
+          var index;
+          for(var j; j < shopping_cart[i]['product'].length; j++){
+            if (shopping_cart[i]['product'][j].id === requestPayload.id){
+              index = j;
+              break;
+            }
+          }
+          shopping_cart[i]['product'].splice(index, 1)
+
+
+          var messageData = {
+            recipient: {
+              id: recipientId
+            },
+            "message":{
+              "text": "Deleted Item!"
+            }
+          }
+          callSendAPI(messageData);
         break;
 
         case 'QR_SAVED_ITEMS':
@@ -619,8 +654,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
                       "webview_height_ratio": "compact",
                       "messenger_extensions": "true"
                     },
-                    sectionButton('Get options', 'QR_GET_PRODUCT_OPTIONS', {id: product.id}),
-                    sectionButton('Save this item', 'QR_SAVE', {id: product.id})
+                    sectionButton('Delete', 'QR_DEL', {id: product.id})
                   ]
                 });
               });
@@ -645,8 +679,12 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
 
           console.log(shopping_cart)
         break;
+<<<<<<< HEAD
 
 
+=======
+
+>>>>>>> c70437c461e5d3a21ed26cd5ce8b6192e98a62ba
     case 'QR_SEARCH':
       var messageData = {
         recipient: {
