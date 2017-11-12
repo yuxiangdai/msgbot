@@ -239,26 +239,45 @@ function receivedMessage(event) {
       case 'reset':
         reset(senderID);
         break;
-      // sends info about a specific   
+      // sends info about a specific
       // case 'info':
       default:
         // otherwise, just echo it back to the sender
         var thresConf = 0.8; //threshhold_confidence
+<<<<<<< HEAD
         inquiry = parsed['instruction']['confidence'] > thresConf || parsed['question']['confidence'] > thresConf;
-        if (inquiry) {
-          var prod_type = '';
-          var descriptor =  '';
-          if (parsed['product_type']['confidence'] > thresConf) {
-            prod_type = parsed['product_type']['value'];
-          }
-          if (parsed['descriptor']['confidence'] > thresConf) {
-            descriptor = parsed['descriptor']['value'];
-          }
-          product = [prod_type, descriptor];
-          sendProductInfo(senderID, product);
+=======
+        var instr = 0;
+        var quest = 0;
+        if (parsed['instruction'] != null){
+          instr = parsed['instruction'][0]['confidence'] > thresConf;
+        }
+        if (parsed['question'] !=null) {
+          quest = parsed['question'][0]['confidence'] > thresConf;
+        }
 
+        console.log(parsed['instruction'][0]['confidence'])
+        var inquiry = instr || quest;
+        var productArr = []
+>>>>>>> 843234d3a598be9e06dda12a2068e63830c34db1
+        if (inquiry) {
+          if (parsed['product_type'] != null){
+            if (parsed['product_type'][0]['confidence'] > thresConf) {
+              var prod_type = parsed['product_type'][0]['value'];
+              productArr.push(prod_type);
+            }
+          }
+          if (parsed['descriptor'] != null){
+            if (parsed['descriptor'][0]['confidence'] > thresConf) {
+              var descriptor = parsed['descriptor'][0]['value'];
+              var descripArr = descriptor.split(' ');
+              productArr.concat(descripArr);
+
+            }
+          }
+          sendProductInfo(senderID, productArr);
         } else {
-          sendProductInfo(senderID, messageText);
+          sendProductInfo(senderID, [messageText," "]);
         }
         //sendTextMessage(senderID, messageText);
     }
@@ -321,7 +340,7 @@ function reset(recipientId){
   //           "title":"Search",
   //           "payload":JSON.stringify({action: 'QR_SEARCH', limit: 3})
   //         }
-  //         // limit of three buttons 
+  //         // limit of three buttons
   //       ]
   //     }
   //   }
@@ -331,40 +350,39 @@ function reset(recipientId){
 }
 
 
-function sendProductInfo(recipientId, messageText){
+function sendProductInfo(recipientId, product_arr){
 
   var templateElements = [];
-
-  var products = shopify.product.list({"title": messageText}); // title tag and description
+  var product_type = product_arr[0];
+  var descriptor = product_arr[1];
+  console.log(product_type)
+  console.log(descriptor)
+  var products = shopify.product.list({"title": product_type}); // title tag and description
 
   //var products = shopify.collectionListing.list({"title": messageText});
-  
+  if(!products){
+
+  }
+
   products.then(function(listOfProducs) {
     listOfProducs.forEach(function(product) {
 
-      var url = HOST_URL + "/product.html?id="+product.id;
-      
-      templateElements.push({
-        title: product.title,
-        subtitle: product.tags,
-        image_url: product.image.src
+        var url = HOST_URL + "/product.html?id="+product.id;
 
-      });
+        templateElements.push({
+          title: product.title,
+          subtitle: product.tags,
+          image_url: product.image.src
+        });
     });
 
-    if(!templateElements){
+    if(templateElements.length == 0){
       var messageData = {
         recipient: {
           id: recipientId
         },
         message: {
-          attachment: {
-            type: "template",
-            payload: {
-              template_type: "generic",
-              text: "No product found!"
-            }
-          }
+          text: "No items found! Try again."
         }
       };
     } else {
@@ -492,7 +510,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
         }
       }
       callSendAPI(messageData);
-    
+
     break;
 
     case 'QR_SEARCH':
@@ -505,7 +523,12 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
         }
       }
       callSendAPI(messageData);
+<<<<<<< HEAD
     break;
+=======
+
+      break;
+>>>>>>> 843234d3a598be9e06dda12a2068e63830c34db1
 
     case 'QR_GET_BEST':
     var products = shopify.product.list({ limit: requestPayload.limit});
