@@ -378,7 +378,7 @@ function sendProductInfo(recipientId, product_arr, lcm){
           var url = HOST_URL + "/product.html?id="+product.id;
 
           if(descriptors != null){
-          if(product.title.contains(descriptors)){
+          //if(product.title.includes(descriptors)){
           templateElements.push({
             title: product.title,
             subtitle: product.tags,
@@ -395,7 +395,8 @@ function sendProductInfo(recipientId, product_arr, lcm){
               sectionButton('Save this item', 'QR_SAVE', {id: product.id})
             ]
           })
-        }}
+        //}
+      }
       });
   
       if(templateElements.length == 0){
@@ -528,16 +529,17 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
         var recipientID_str = recipientId.toString();
         var sh_product = shopify.product.get(requestPayload.id);
 
-        sh_product.then(function(){if (contains(shopping_cart, recipientId) === false){
-          shopping_cart.push({'id': recipientID_str, 'product': [sh_product]});
+        sh_product.then(function(product){if (contains(shopping_cart, recipientId) === false){
+          shopping_cart.push({'id': recipientID_str, 'product': [product]});
     
         }
         else{
           var i = contains(shopping_cart, recipientId);
-          shopping_cart[i]['product'].push(sh_product);
+          shopping_cart[i]['product'].push(product);
         }
 
         console.log(shopping_cart[0]['product'].id)
+        console.log(shopping_cart[0].product[0].id)
         console.log(shopping_cart[0]['product'].title)
         console.log(shopping_cart[0]['product'].tags)
       })
@@ -571,7 +573,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
                 templateElements.push({
                   title: product.title,
                   subtitle: product.tags,
-                  //image_url: product.image.src,
+                  image_url: product.image.src,
                   buttons:[
                     {
                       "type":"web_url",
