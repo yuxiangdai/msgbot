@@ -20,8 +20,7 @@ const
   https = require('https'),
   request = require('request'),
   Shopify = require('shopify-api-node'),
-  fs = require('fs'),
-  request = require('request');
+  fs = require('fs')
 
 var app = express();
 app.set('port', process.env.PORT || 5000);
@@ -228,10 +227,11 @@ function receivedMessage(event) {
   var message = event.message;
 
   var msgAttach = message.attachments;
-  if (msgAttach && msgAttach.type == "image"){
-    url = msgAttach.payload.url;
-    console.log("image url:",url);
-    download(url, str(timeOfMessage), function(){
+  console.log(msgAttach[0].payload.url);
+  if (msgAttach){
+    var url = msgAttach[0].payload.url;
+    console.log("image url:", url);
+    download(url, timeOfMessage.toString(), function(){
       console.log('downloaded to root directory');
     });
   }
@@ -603,7 +603,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
               break;
             }
           }
-          shopping_cart[i]['product'].splice(index - 1, 1)
+          shopping_cart[i]['product'].splice(index, 1)
 
 
           var messageData = {
