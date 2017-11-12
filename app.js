@@ -80,7 +80,6 @@ const shopify = new Shopify({
   password: SHOPIFY_API_PASSWORD
 });
 
-
 /*
  * Verify that the callback came from Facebook. Using the App Secret from
  * your App Dashboard, we can verify the signature that is sent with each
@@ -368,7 +367,18 @@ function sendProductInfo(recipientId, product_arr){
         templateElements.push({
           title: product.title,
           subtitle: product.tags,
-          image_url: product.image.src
+          image_url: product.image.src,
+          buttons:[
+            {
+              "type":"web_url",
+              "url": url,
+              "title":"Read description",
+              "webview_height_ratio": "compact",
+              "messenger_extensions": "true"
+            },
+            sectionButton('Get options', 'QR_GET_PRODUCT_OPTIONS', {id: product.id}),
+            sectionButton('Save this item', 'QR_SAVE', {id: product.id})
+          ]
         });
     });
 
@@ -451,7 +461,6 @@ function handleQuickReplyResponse(event) {
 
   // use branched conversation with one interaction per feature (each of which contains a variable number of content pieces)
   respondToHelpRequestWithTemplates(senderID, quickReplyPayload);
-
 }
 
 /*
@@ -538,7 +547,8 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
               "webview_height_ratio": "compact",
               "messenger_extensions": "true"
             },
-            sectionButton('Get options', 'QR_GET_PRODUCT_OPTIONS', {id: product.id})
+            sectionButton('Get options', 'QR_GET_PRODUCT_OPTIONS', {id: product.id}),
+            sectionButton('Save this item', 'QR_SAVE', {id: product.id})
           ]
         });
       });
@@ -644,25 +654,31 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
       break;
 
       case 'QR_GET_PRICE':
-      var sh_product = shopify.product.get(requestPayload.id);
-      sh_product.then(function(product) {
-        var options = '';
-        product.options.map(function(option) {
-          options = options + option.name + ': ' + option.values.join(',') + "\n";
+        var sh_product = shopify.product.get(requestPayload.id);
+        sh_product.then(function(product) {
+          var options = '';
+          product.options.map(function(option) {
+            options = options + option.name + ': ' + option.values.join(',') + "\n";
+          });
+          var messageData = {
+            recipient: {
+              id: recipientId
+            },
+            message: {
+              text: options.substring(0, 640),
+              quick_replies: [
+                textButton('Get 3 products', 'QR_GET_PRODUCT_LIST', {limit: 3})
+              ]
+            },
+          };
+          callSendAPI(messageData);
         });
-        var messageData = {
-          recipient: {
-            id: recipientId
-          },
-          message: {
-            text: options.substring(0, 640),
-            quick_replies: [
-              textButton('Get 3 products', 'QR_GET_PRODUCT_LIST', {limit: 3})
-            ]
-          },
-        };
-        callSendAPI(messageData);
-      });
+      break;
+
+      case 'QR_SAVE':
+        
+        
+
       break;
 
   }
