@@ -492,6 +492,21 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
 
   switch (requestPayload.action) {
 
+    case 'QR_SAVE':
+
+    var recipientID_str = recipientID.toString();
+    var sh_product = shopify.product.get(requestPayload.id);
+    if (contains(shopping_cart, recipientID) === false){
+
+      shopping_cart.push({'id': recipientID_str, 'product': {sh_product}});
+
+    }
+    else{
+      var i = contains(shopping_cart, recipientID);
+      shopping_cart[i]['product'].push(sh_product);
+    }
+    break;
+
     case 'QR_SAVED_ITEMS':
       if(!shopping_cart.users[recipientId])
       {
@@ -668,6 +683,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
           callSendAPI(messageData);
         });
       break;
+<<<<<<< HEAD
 
       case 'QR_SAVE':
 
@@ -675,6 +691,8 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
 
       break;
 
+=======
+>>>>>>> b523209f1c8638116529958291be1f251de7297e
   }
 
 }
