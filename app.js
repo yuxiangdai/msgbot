@@ -253,7 +253,7 @@ function receivedMessage(event) {
           quest = parsed['question'][0]['confidence'] > thresConf;
         }
 
-        console.log(parsed['instruction'][0]['confidence'])
+        //console.log(parsed['instruction'][0]['confidence'])
         var inquiry = instr || quest;
 
         if (inquiry) {
@@ -270,10 +270,10 @@ function receivedMessage(event) {
             }
           }
           var product = [prod_type, descriptor];
-          sendProductInfo(senderID, product);
+          sendProductInfo(senderID, product, lcm);
 
         } else {
-          sendProductInfo(senderID, [messageText," "]);
+          sendProductInfo(senderID, [messageText, " "], lcm);
         }
         //sendTextMessage(senderID, messageText);
     }
@@ -309,62 +309,49 @@ function reset(recipientId){
     }
   };
   callSendAPI(messageData);
-
-  // var messageData = {
-  //   recipient: {
-  //     id: recipientId
-  //   },
-
-  // message:{
-  //   attachment:{
-  //     type:"template",
-  //     payload:{
-  //       template_type:"button",
-  //       text:"Click the button before to get a list of 3 of our products.",
-  //       buttons:[
-  //         {
-  //           "type":"postback",
-  //           "title":"Get 3 products",
-  //           "payload":JSON.stringify({action: 'QR_GET_PRODUCT_LIST', limit: 3})
-  //         },
-  //         {
-  //           "type":"postback",
-  //           "title":"Get 3 products",
-  //           "payload":JSON.stringify({action: 'QR_SAVED_ITEMS', limit: 3})
-  //         },
-  //         {
-  //           "type":"postback",
-  //           "title":"Search",
-  //           "payload":JSON.stringify({action: 'QR_SEARCH', limit: 3})
-  //         }
-  //         // limit of three buttons 
-  //       ]
-  //     }
-  //   }
-  // }
-  // }
-  //callSendAPI(messageData);
 }
 
 
-function sendProductInfo(recipientId, product_arr){
-  
+function sendProductInfo(recipientId, product_arr, lcm){
+
+  // filter based on descriptor as well
+
+  // search for first index, get the list 
+  // serach for second index, 
+
+   // title || desc || tags
+
+  // if yellow && pants 
+    // if yellow
+    // if pants
+
+
+    // cut plurals "e.g. hoodies vs hoodie"
+
+
+
   var templateElements = [];
+  var productList = [];
+  var productIDList = [];
   var product_type = product_arr[0];
   var descriptor = product_arr[1];
   console.log(product_type)
   console.log(descriptor)
-  var products = shopify.product.list({"title": product_type}); // title tag and description
 
 
-  //var products = shopify.collectionListing.list({"title": messageText});
-  if(!products){
+  var product = shopify.product.list({"title": product_type}); // title tag and description
+  var productDescSearch = shopify.product.list({"body_html": product_type}); 
+  var productTagSearch = shopify.product.list({"tags": product_type}); 
 
-  }
+  
 
-  products.then(function(listOfProducs) {
+
+
+  product.then(function(listOfProducs) {
     listOfProducs.forEach(function(product) {
-      
+        console.log(product)
+        productList.push(product)
+        productIDList.push(product.id)
         var url = HOST_URL + "/product.html?id="+product.id;
         
         templateElements.push({
@@ -373,14 +360,14 @@ function sendProductInfo(recipientId, product_arr){
           image_url: product.image.src
         });
     });
-
+      // put inside then function
     if(templateElements.length == 0){
       var messageData = {
         recipient: {
           id: recipientId
         },
         message: {
-          text: "No items found! Try again."
+          text: "I didn't find anything related to '" + lcm + "'"
         }
       };
     } else {
@@ -393,7 +380,7 @@ function sendProductInfo(recipientId, product_arr){
             type: "template",
             payload: {
               template_type: "generic",
-              elements: templateElements
+              elements: templateElements.slice(0, 10)
             }
           }
         }
@@ -401,7 +388,25 @@ function sendProductInfo(recipientId, product_arr){
     }
 
     callSendAPI(messageData);
+
+    })
+
+  productDescSearch.then(function(listOfProducs) {
+    listOfProducs.forEach(function(product) {
+        productList.push(product)
+        productIDList.push(product.id)
+    });
   })
+
+  productTagSearch.then(function(listOfProducs) {
+    listOfProducs.forEach(function(product) {
+        productList.push(product)
+    });
+  })
+
+
+
+
 }
 
 
@@ -496,7 +501,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
       {
         var message = "You have no items"
       } else {
-        var message = "You have some items"
+        var message = "You have items in your cart"
       }
 
       var messageData = {
