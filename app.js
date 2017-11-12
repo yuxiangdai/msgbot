@@ -244,25 +244,36 @@ function receivedMessage(event) {
       default:
         // otherwise, just echo it back to the sender
         var thresConf = 0.8; //threshhold_confidence
-        // inquiry = parsed['instruction']['confidence'] > thresConf || parsed['question']['confidence'] > thresConf;
-        // if (inquiry) {
-        //   var prod_type = '';
-        //   var descriptor =  '';
-        //   if (parsed['product_type']['confidence'] > thresConf) {
-        //     prod_type = parsed['product_type']['value'];
-        //   }
-        //   if (parsed['descriptor']['confidence'] > thresConf) {
-        //     descriptor = parsed['descriptor']['value'];
-        //   }
-        //   product = [prod_type, descriptor];
-        //   sendProductInfo(senderID, product);
+        var instr = 0;
+        var quest = 0;
+        if (parsed['instruction'] != null){
+          instr = parsed['instruction']['confidence'] > thresConf;
+        }
+        if (parsed['question'] !=null) {
+          quest = parsed['question']['confidence'] > thresConf;
+        }
+        var inquiry = instr || quest;
 
-        // } else {
-        //   sendProductInfo(senderID, messageText);
-        // }
+        if (inquiry) {
+          var prod_type = '';
+          var descriptor =  '';
+          if (parsed['product_type'] != null){
+            if (parsed['product_type']['confidence'] > thresConf) {
+              var prod_type = parsed['product_type']['value'];
+            }
+          }
+          if (parsed['descriptor'] != null){
+            if (parsed['descriptor']['confidence'] > thresConf) {
+              var descriptor = parsed['descriptor']['value'];
+            }
+          }
+          var product = [prod_type, descriptor];
+          sendProductInfo(senderID, product);
 
-        sendProductInfo(senderID, messageText);
-        
+        } else {
+          sendProductInfo(senderID, messageText);
+        }
+        //sendTextMessage(senderID, messageText);
     }
   }
 }
