@@ -543,8 +543,42 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
         console.log(shopping_cart[0]['product'].title)
         console.log(shopping_cart[0]['product'].tags)
       })
+        var messageData = {
+        recipient: {
+          id: recipientId
+        },
+        "message":{
+          "text": "Saved Item!"
+        }
+      }
+      callSendAPI(messageData);
         break;
     
+        case 'QR_DEL':
+          var  i = contains(shopping_cart, recipientId);
+          var index;
+          for(var j; j < shopping_cart[i]['product'].length; j++){
+            if (shopping_cart[i]['product'][j].id === requestPayload.id){
+              index = j;
+              break;
+            }
+          }
+          shopping_cart[i]['product'].splice(index, 1)
+
+          }
+          var messageData = {
+            recipient: {
+              id: recipientId
+            },
+            "message":{
+              "text": "Deleted Item!"
+            }
+          }
+          callSendAPI(messageData);
+
+
+        break;
+
         case 'QR_SAVED_ITEMS':
         
           if(contains(shopping_cart, recipientId) === false)
@@ -582,8 +616,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
                       "webview_height_ratio": "compact",
                       "messenger_extensions": "true"
                     },
-                    sectionButton('Get options', 'QR_GET_PRODUCT_OPTIONS', {id: product.id}),
-                    sectionButton('Save this item', 'QR_SAVE', {id: product.id})
+                    sectionButton('Delete', 'QR_DEL', {id: product.id})
                   ]
                 });
               });
