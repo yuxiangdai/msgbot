@@ -243,6 +243,17 @@ function receivedMessage(event) {
       default:
         // otherwise, just echo it back to the sender
         var thresConf = 0.8; //threshhold_confidence
+        //code for general check for what is proposed
+        // if (parsed['____'] != null){
+        //   _____ = parsed['___'][0]['confidence'] > thresConf;
+        // }
+        //find out if greeting was proposed
+        var greet = 0;
+        if (parsed['greeting'] != null){
+          greet = parsed['greeting'][0]['confidence'] > thresConf;
+        }
+
+        //find if instruction or question proposed
         var instr = 0;
         var quest = 0;
         if (parsed['instruction'] != null){
@@ -255,19 +266,20 @@ function receivedMessage(event) {
         //console.log(parsed['instruction'][0]['confidence'])
         var inquiry = instr || quest;
         var productArr = []
+        
+
         if (inquiry) {
-          if (parsed['product_type'] != null){
-            if (parsed['product_type'][0]['confidence'] > thresConf) {
-              var prod_type = parsed['product_type'][0]['value'];
-              productArr.push(prod_type);
-            }
-          }
           if (parsed['descriptor'] != null){
             if (parsed['descriptor'][0]['confidence'] > thresConf) {
               var descriptor = parsed['descriptor'][0]['value'];
               var descripArr = descriptor.split(' ');
-              productArr.concat(descripArr);
-
+              productArr = descripArr;
+            }
+          }
+          if (parsed['product_type'] != null){
+            if (parsed['product_type'][0]['confidence'] > thresConf) {
+              var prod_type = parsed['product_type'][0]['value'];
+              productArr.push(prod_type);
             }
           }
           var product = [descriptor, prod_type];
