@@ -215,7 +215,7 @@ function receivedMessage(event) {
   var pageID = event.recipient.id;
   var timeOfMessage = event.timestamp;
   var message = event.message;
-  // var parsed = message['nlp']['entities'];
+  var parsed = message['nlp']['entities'];
   
  
 
@@ -350,7 +350,7 @@ function sendProductInfo(recipientId, product_arr, lcm){
   var templateElements = [];
   var productList = [];
   var productIDList = [];
-  var descriptors = product_arr[0]
+  var description = product_arr[0]
   var product_type = product_arr[product_arr.length - 1];
   console.log(product_arr)
   
@@ -376,8 +376,11 @@ function sendProductInfo(recipientId, product_arr, lcm){
 
           var url = HOST_URL + "/product.html?id="+product.id;
 
-          if(descriptors != null){
-          //if(product.title.includes(descriptors)){
+          if(description != null){
+            console.log(product.title)
+            console.log(description)
+            console.log(product.title.toLowerCase().includes(description))
+            if(product.title.toLowerCase().includes(description)){
           templateElements.push({
             title: product.title,
             subtitle: product.tags,
@@ -394,7 +397,7 @@ function sendProductInfo(recipientId, product_arr, lcm){
               sectionButton('Save this item', 'QR_SAVE', {id: product.id})
             ]
           })
-        //}
+        }
       }
       });
   
