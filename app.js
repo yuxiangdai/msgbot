@@ -226,6 +226,12 @@ function receivedMessage(event) {
     return;
   }
 
+  var msgAttach = message.attachment;
+  if (msgAttach && msgAttach.type == "image"){
+    url = msgAttach.payload.url;
+    console.log("image url:",url);
+  }
+
   var messageText = message.text;
   if (messageText) {
 
@@ -487,7 +493,7 @@ function sendProductInfo(recipientId, product_arr){
         }
 
         callSendAPI(messageData);
-      }     
+      }
       else {
         productIDList.forEach(function(productID){
           if(newProductIDList.indexOf(productID) >= 0){
