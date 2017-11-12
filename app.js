@@ -243,24 +243,26 @@ function receivedMessage(event) {
       // case 'info':
       default:
         // otherwise, just echo it back to the sender
-        thresConf = 0.8; //threshhold_confidence
-        inquiry = parsed['instruction']['confidence'] > thresConf || parsed['question']['confidence'] > thresConf;
-        if (inquiry) {
-          var prod_type = '';
-          var descriptor =  '';
-          if (parsed['product_type']['confidence'] > thresConf) {
-            prod_type = parsed['product_type']['value'];
-          }
-          if (parsed['descriptor']['confidence'] > thresConf) {
-            descriptor = parsed['descriptor']['value'];
-          }
-          product = [prod_type, descriptor];
-          sendProductInfo(senderID, product);
+        var thresConf = 0.8; //threshhold_confidence
+        // inquiry = parsed['instruction']['confidence'] > thresConf || parsed['question']['confidence'] > thresConf;
+        // if (inquiry) {
+        //   var prod_type = '';
+        //   var descriptor =  '';
+        //   if (parsed['product_type']['confidence'] > thresConf) {
+        //     prod_type = parsed['product_type']['value'];
+        //   }
+        //   if (parsed['descriptor']['confidence'] > thresConf) {
+        //     descriptor = parsed['descriptor']['value'];
+        //   }
+        //   product = [prod_type, descriptor];
+        //   sendProductInfo(senderID, product);
 
-        } else {
-          sendProductInfo(senderID, messageText);
-        }
-        //sendTextMessage(senderID, messageText);
+        // } else {
+        //   sendProductInfo(senderID, messageText);
+        // }
+
+        sendProductInfo(senderID, messageText);
+        
     }
   }
 }
@@ -340,33 +342,29 @@ function sendProductInfo(recipientId, messageText){
 
 
   //var products = shopify.collectionListing.list({"title": messageText});
-  
+  if(!products){
+
+  }
+
   products.then(function(listOfProducs) {
     listOfProducs.forEach(function(product) {
-
-      var url = HOST_URL + "/product.html?id="+product.id;
       
-      templateElements.push({
-        title: product.title,
-        subtitle: product.tags,
-        image_url: product.image.src
-
-      });
+        var url = HOST_URL + "/product.html?id="+product.id;
+        
+        templateElements.push({
+          title: product.title,
+          subtitle: product.tags,
+          image_url: product.image.src
+        });
     });
 
-    if(!templateElements){
+    if(templateElements.length == 0){
       var messageData = {
         recipient: {
           id: recipientId
         },
         message: {
-          attachment: {
-            type: "template",
-            payload: {
-              template_type: "generic",
-              text: "No product found!"
-            }
-          }
+          text: "No items found! Try again."
         }
       };
     } else {
