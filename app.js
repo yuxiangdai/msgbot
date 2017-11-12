@@ -241,17 +241,30 @@ function receivedMessage(event) {
       default:
         // otherwise, just echo it back to the sender
         thresConf = 0.8; //threshhold_confidence
-        inquiry = parsed['instruction']['confidence'] > thresConf || parsed['question']['confidence'] > thresConf;
+        var instr = 0;
+        var quest = 0;
+        if parsed['instruction'] !=null {
+          instr = parsed['instruction']['confidence'] > thresConf;
+        }
+        if parsed['question'] !=null {
+          quest = parsed['question']['confidence'] > thresConf;
+        }
+        var inquiry = instr || quest;
+
         if (inquiry) {
           var prod_type = '';
           var descriptor =  '';
-          if (parsed['product_type']['confidence'] > thresConf) {
-            prod_type = parsed['product_type']['value'];
+          if parsed['product_type'] !=null{
+            if (parsed['product_type']['confidence'] > thresConf) {
+              var prod_type = parsed['product_type']['value'];
+            }
+          ]
+          if parsed['descriptor'] != null{
+            if (parsed['descriptor']['confidence'] > thresConf) {
+              var descriptor = parsed['descriptor']['value'];
+            }
           }
-          if (parsed['descriptor']['confidence'] > thresConf) {
-            descriptor = parsed['descriptor']['value'];
-          }
-          product = [prod_type, descriptor];
+          var product = [prod_type, descriptor];
           sendProductInfo(senderID, product);
 
         } else {
