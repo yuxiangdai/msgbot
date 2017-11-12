@@ -244,9 +244,6 @@ function receivedMessage(event) {
       default:
         // otherwise, just echo it back to the sender
         var thresConf = 0.8; //threshhold_confidence
-<<<<<<< HEAD
-        inquiry = parsed['instruction']['confidence'] > thresConf || parsed['question']['confidence'] > thresConf;
-=======
         var instr = 0;
         var quest = 0;
         if (parsed['instruction'] != null){
@@ -259,7 +256,6 @@ function receivedMessage(event) {
         console.log(parsed['instruction'][0]['confidence'])
         var inquiry = instr || quest;
         var productArr = []
->>>>>>> 843234d3a598be9e06dda12a2068e63830c34db1
         if (inquiry) {
           if (parsed['product_type'] != null){
             if (parsed['product_type'][0]['confidence'] > thresConf) {
@@ -523,15 +519,10 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
         }
       }
       callSendAPI(messageData);
-<<<<<<< HEAD
     break;
-=======
-
-      break;
->>>>>>> 843234d3a598be9e06dda12a2068e63830c34db1
 
     case 'QR_GET_BEST':
-    var products = shopify.product.list({ limit: requestPayload.limit});
+    var products = shopify.product.list({ limit: requestPayload.limit, order: "BEST_SELLING"});
     products.then(function(listOfProducs) {
       listOfProducs.forEach(function(product) {
         var url = HOST_URL + "/product.html?id="+product.id;
