@@ -243,7 +243,7 @@ function receivedMessage(event) {
       // case 'info':
       default:
         // otherwise, just echo it back to the sender
-        thresConf = 0.8; //threshhold_confidence
+        var thresConf = 0.8; //threshhold_confidence
         inquiry = parsed['instruction']['confidence'] > thresConf || parsed['question']['confidence'] > thresConf;
         if (inquiry) {
           var prod_type = '';
@@ -268,7 +268,6 @@ function receivedMessage(event) {
 
 function reset(recipientId){
 
-
   var textButton = function(title, action, options) {
     var payload = options | {};
     payload = Object.assign(options, {action: action});
@@ -286,7 +285,7 @@ function reset(recipientId){
     "message":{
       "text": "Please select one of the options below to begin.",
       "quick_replies":[
-        textButton('Trending', 'QR_GET_PRODUCT_LIST', {limit: 3}),
+        textButton('Trending', 'QR_GET_BEST', {limit: 10}),
         textButton('Search', 'QR_SEARCH', {limit: 3}),
         textButton('Saved', 'QR_SAVED_ITEMS', {limit: 3})
 
@@ -337,7 +336,6 @@ function sendProductInfo(recipientId, messageText){
   var templateElements = [];
 
   var products = shopify.product.list({"title": messageText}); // title tag and description
-
 
   //var products = shopify.collectionListing.list({"title": messageText});
   
@@ -507,10 +505,48 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
         }
       }
       callSendAPI(messageData);
-      
-      break;
+    break;
 
+    case 'QR_GET_BEST':
+    var products = shopify.product.list({ limit: requestPayload.limit});
+    products.then(function(listOfProducs) {
+      listOfProducs.forEach(function(product) {
+        var url = HOST_URL + "/product.html?id="+product.id;
+        templateElements.push({
+          title: product.title,
+          subtitle: product.tags,
+          image_url: product.image.src,
+          buttons:[
+            {
+              "type":"web_url",
+              "url": url,
+              "title":"Read description",
+              "webview_height_ratio": "compact",
+              "messenger_extensions": "true"
+            },
+            sectionButton('Get options', 'QR_GET_PRODUCT_OPTIONS', {id: product.id})
+          ]
+        });
+      });
 
+      var messageData = {
+        recipient: {
+          id: recipientId
+        },
+        message: {
+          "text": "These are the top 10 best selling products",
+          attachment: {
+            type: "template",
+            payload: {
+              template_type: "generic",
+              elements: templateElements
+            }
+          }
+        }
+      };
+      callSendAPI(messageData);
+    });
+    break;
 
     case 'QR_GET_GREETING':
         var messageData = {
@@ -520,7 +556,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
           "message":{
             "text": "Please select one of the options below to begin.",
             "quick_replies":[
-              textButton('Trending', 'QR_GET_PRODUCT_LIST', {limit: 3}),
+              textButton('Trending', 'QR_GET_BEST', {limit: 3}),
               textButton('Search', 'QR_SEARCH', {limit: 3}),
               textButton('Saved', 'QR_SAVED_ITEMS', {limit: 3})
 
@@ -553,7 +589,6 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
           });
         });
 
-
         var messageData = {
           recipient: {
             id: recipientId
@@ -568,11 +603,8 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
             }
           }
         };
-
         callSendAPI(messageData);
-
       });
-
       break;
 
     case 'QR_GET_PRODUCT_OPTIONS':
@@ -595,10 +627,30 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
         };
         callSendAPI(messageData);
       });
-
-
-
       break;
+
+      case 'QR_GET_PRICE':
+      var sh_product = shopify.product.get(requestPayload.id);
+      sh_product.then(function(product) {
+        var options = '';
+        product.options.map(function(option) {
+          options = options + option.name + ': ' + option.values.join(',') + "\n";
+        });
+        var messageData = {
+          recipient: {
+            id: recipientId
+          },
+          message: {
+            text: options.substring(0, 640),
+            quick_replies: [
+              textButton('Get 3 products', 'QR_GET_PRODUCT_LIST', {limit: 3})
+            ]
+          },
+        };
+        callSendAPI(messageData);
+      });
+      break;
+
   }
 
 }
