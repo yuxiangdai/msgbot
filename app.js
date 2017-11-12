@@ -265,28 +265,40 @@ function receivedMessage(event) {
 
         //console.log(parsed['instruction'][0]['confidence'])
         var inquiry = instr || quest;
-        var productArr = []
-        
-
-        if (inquiry) {
-          if (parsed['descriptor'] != null){
-            if (parsed['descriptor'][0]['confidence'] > thresConf) {
-              var descriptor = parsed['descriptor'][0]['value'];
-              var descripArr = descriptor.split(' ');
-              productArr = descripArr;
-            }
-          }
-          if (parsed['product_type'] != null){
-            if (parsed['product_type'][0]['confidence'] > thresConf) {
-              var prod_type = parsed['product_type'][0]['value'];
-              productArr.push(prod_type);
-            }
-          }
-          var product = [descriptor, prod_type];
-          sendProductInfo(senderID, product, lcm);
-
+        var productArr = [];
+        var proposal = 'initial';
+        if (greet) {
+          proposal = 'greet';
+        } else if (inquiry){
+          proposal = 'inquiry';
         } else {
-          sendProductInfo(senderID, [" ", messageText], lcm);
+          proposal = 'undefined';
+        }
+        switch (proposal){
+          case 'greet':
+            var arrofGreetings = ['Hi!','Hello!','Hey!'];
+            var greettosend = arrofGreetings[Math.floor(Math.random()*items.length)];
+            sendTextMessage(senderID, greettosend);
+          break;
+          case 'inquiry':
+            if (parsed['descriptor'] != null){
+              if (parsed['descriptor'][0]['confidence'] > thresConf) {
+                var descriptor = parsed['descriptor'][0]['value'];
+                var descripArr = descriptor.split(' ');
+                productArr = descripArr;
+              }
+            }
+            if (parsed['product_type'] != null){
+              if (parsed['product_type'][0]['confidence'] > thresConf) {
+                var prod_type = parsed['product_type'][0]['value'];
+                productArr.push(prod_type);
+              }
+            }
+            var product = [descriptor, prod_type];
+            sendProductInfo(senderID, product, lcm);
+          break;
+          default:
+            sendProductInfo(senderID, [" ", messageText], lcm);
         }
         //sendTextMessage(senderID, messageText);
     }
@@ -374,12 +386,12 @@ function sendProductInfo(recipientId, product_arr){
 
     var product = shopify.product.list({"title": descriptor}); // title tag and description
     var productTagSearch = shopify.product.list({"tags": descriptor});
-    var productDescSearch = shopify.product.list({"body_html": descriptor}); 
-  
+    var productDescSearch = shopify.product.list({"body_html": descriptor});
+
     product.then(function(listOfProducs) {
-      listOfProducs.forEach(function(product) {      
+      listOfProducs.forEach(function(product) {
         newProductList.push(product)
-        newProductIDList.push(product.id) 
+        newProductIDList.push(product.id)
       });
     })
 
@@ -389,7 +401,7 @@ function sendProductInfo(recipientId, product_arr){
           if(newProductIDList.indexOf(product.id) < 0){
             newProductList.push(product)
             newProductIDList.push(product.id)
-          } 
+          }
       });
     })
 
@@ -399,17 +411,17 @@ function sendProductInfo(recipientId, product_arr){
           if(newProductIDList.indexOf(product.id) < 0){
             newProductList.push(product)
             newProductIDList.push(product.id)
-          } 
+          }
       });
 
       if(i == 0){
         productIDList = newProductIDList;
         productList = newProductList;
-      } 
+      }
       else if(i == product_arr.length - 1){
         productList.forEach(function(product){
           var url = HOST_URL + "/product.html?id="+product.id;
-          
+
           templateElements.push({
             title: product.title,
             subtitle: product.tags,
@@ -427,7 +439,7 @@ function sendProductInfo(recipientId, product_arr){
             ]
           });
         });
-      
+
         if(templateElements.length == 0){
           var messageData = {
             recipient: {
@@ -453,7 +465,7 @@ function sendProductInfo(recipientId, product_arr){
             }
           };
         }
-    
+
         callSendAPI(messageData);
       }     
       else {
@@ -473,29 +485,29 @@ function sendProductInfo(recipientId, product_arr){
   }
 
 
-  
+
   // var product = shopify.product.list({"title": product_type}); // title tag and description
   // var productTagSearch = shopify.product.list({"tags": product_type});
-  // var productDescSearch = shopify.product.list({"body_html": product_type}); 
+  // var productDescSearch = shopify.product.list({"body_html": product_type});
 
   // var newProductList = [];
   // var newProductIDList = [];
 
 
   // product.then(function(listOfProducs) {
-  //   listOfProducs.forEach(function(product) {      
+  //   listOfProducs.forEach(function(product) {
   //     newProductList.push(product)
-  //     newProductIDList.push(product.id) 
+  //     newProductIDList.push(product.id)
   //   });
   // })
 
   // productTagSearch.then(function(listOfProducs) {
   //   listOfProducs.forEach(function(product) {
-        
+
   //       if(newProductIDList.indexOf(product.id) < 0){
   //         newProductList.push(product)
   //         newProductIDList.push(product.id)
-  //       } 
+  //       }
   //   });
   // })
 
@@ -504,20 +516,20 @@ function sendProductInfo(recipientId, product_arr){
   //     if(productIDList.indexOf(product.id) < 0 && productList.length <= 10){
   //       productList.push(product)
   //       productIDList.push(product.id)
-  //     } 
+  //     }
   //   });
 
 
   //   productList.forEach(function(product){
   //     var url = HOST_URL + "/product.html?id="+product.id;
-      
+
   //     templateElements.push({
   //       title: product.title,
   //       subtitle: product.tags,
   //       image_url: product.image.src
   //     });
   //   });
-  
+
   //   if(templateElements.length == 0){
   //     var messageData = {
   //       recipient: {
@@ -812,8 +824,8 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
       break;
 
       case 'QR_SAVE':
-        
-        
+
+
 
       break;
 
