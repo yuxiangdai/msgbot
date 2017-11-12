@@ -275,7 +275,6 @@ function receivedMessage(event) {
           //find out if greeting was proposed
           var greet = 0;
 
-          console.log(parsed.greeting)
           if (parsed['greeting'] != null){
             greet = parsed['greeting'][0]['confidence'] > thresConf;
           }
