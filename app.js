@@ -565,7 +565,7 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
               break;
             }
           }
-          shopping_cart[i]['product'].splice(index, 1)
+          shopping_cart[i]['product'].splice(index - 1, 1)
 
           
           var messageData = {
@@ -581,7 +581,8 @@ function respondToHelpRequestWithTemplates(recipientId, requestForHelpOnFeature)
 
         case 'QR_SAVED_ITEMS':
         
-          if(contains(shopping_cart, recipientId) === false)
+          var a = contains(shopping_cart, recipientId);
+          if(a === false || shopping_cart[a]['product'].length <= 0)
           {
             var message = "You have no items"
             var messageData = {
